@@ -7,7 +7,7 @@
 */
 "use strict";
 const { grupo, prueba, igual, cierto, falso, cerca } = require("./decir");
-const { cargar } = require("./leer");
+const { cargar, sacar } = require("./leer");
 
 grupo("Los clientes: el teléfono");
 
@@ -143,4 +143,38 @@ prueba("un lazo con forma de C no agarra lo del hueco", () => {
   const c = [[0, 0], [10, 0], [10, 3], [3, 3], [3, 7], [10, 7], [10, 10], [0, 10]];
   cierto(zoAdentro(1, 5, c), "la parte llena de la C");
   falso(zoAdentro(7, 5, c), "el hueco de la C no cuenta");
+});
+
+grupo("Nuevo cliente desde el mapa: dos candados encontrados en revisión (05-09-2026)");
+
+/* hojaNuevoCliente() habla con Firestore de principio a fin -igual que
+   cerrarEntrega()-, así que se prueba leyendo el código, no ejecutándolo. */
+const NUEVO_CLIENTE = sacar("hojaNuevoCliente");
+
+prueba("el botón de guardar se apaga ANTES de las revisiones, no solo antes del guardado final", () => {
+  // Antes se apagaba recién en guardarEn(), al final -después de DOS vueltas
+  // a la red (bloqueados y reservarCodigo()) sin ningún candado. Un doble
+  // toque -muy normal con mala señal- corría las dos revisiones dos veces
+  // con S.clientes todavía sin refrescar, y las dos creaban su propio
+  // negocio: dos clientes de Firestore para una sola tienda.
+  const inicio = NUEVO_CLIENTE.indexOf("#nc-guardar\").onclick");
+  const primeraRevision = NUEVO_CLIENTE.indexOf('if (!nom) return alert');
+  const seApaga = NUEVO_CLIENTE.indexOf("b.disabled = true");
+  cierto(inicio >= 0 && seApaga >= 0 && primeraRevision >= 0 && seApaga < primeraRevision,
+    "el botón tiene que apagarse ANTES de la primera revisión, no después");
+});
+
+prueba("si no se puede confirmar el candado de 'bloqueados', NO se sigue como si no hubiera nada bloqueado", () => {
+  // z.get() casi nunca revienta -un documento que no existe da
+  // {exists:false}, no una excepción-. Si SÍ revienta es porque el chequeo
+  // de verdad falló (sin señal, que es la condición más común en la calle,
+  // justo para la que existe este candado), y un catch vacío dejaba pasar
+  // de largo: el punto que administración dio de baja se podía volver a
+  // abrir justo cuando la conexión fallaba.
+  const desde = NUEVO_CLIENTE.indexOf('db.collection("bloqueados")');
+  const bloque = NUEVO_CLIENTE.slice(desde, NUEVO_CLIENTE.indexOf("clienteQueChoca"));
+  falso(/catch\(e\)\{\s*\}/.test(bloque),
+    "un catch vacío deja crear el cliente aunque no se haya podido confirmar el bloqueo");
+  cierto(bloque.includes("No se pudo confirmar"),
+    "si el chequeo de bloqueados falla, tiene que avisar y NO crear el cliente");
 });

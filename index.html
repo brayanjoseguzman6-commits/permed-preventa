@@ -8202,6 +8202,15 @@ function hojaNuevoCliente(lat, lng){
     '<button class="btn secundario" id="nc-cerrar" style="margin-top:9px">Cancelar</button>';
   $("#nc-cerrar").onclick = cerrarHoja;
   $("#nc-guardar").onclick = async () => {
+    const b = $("#nc-guardar");
+    /* Se apaga ANTES de las revisiones -no solo antes del guardado final-.
+       Antes quedaba prendido durante dos vueltas a la red (el chequeo de
+       bloqueados y reservarCodigo()): un doble toque, muy normal con mala
+       señal, corría el candado de duplicados dos veces con S.clientes
+       todavía sin refrescar, y las dos pasadas creaban su propio negocio
+       en Firestore -dos clientes para la misma tienda-. */
+    if (b) b.disabled = true;
+    try {
     const nom = $("#nc-nom").value.trim();
     if (!nom) return alert("Escriba el nombre del negocio.");
     const tel = $("#nc-tel").value.trim();
@@ -8214,7 +8223,15 @@ function hojaNuevoCliente(lat, lng){
         return alert("Aqui hubo un negocio que la administracion dio de baja" +
           (z.data().motivo ? ":\n\n\"" + z.data().motivo + "\"" : ".") +
           "\n\nNo se puede abrir otro cliente en este punto. Hable con el administrador.");
-    } catch(e){}
+    } catch(e){
+      /* Si esto no se pudo confirmar, NO se sigue como si no hubiera nada
+         bloqueado: es justo la condicion mas comun en la calle (mala
+         señal) para la que este candado existe. Antes un catch vacio
+         dejaba pasar de largo, y el punto que la administracion dio de
+         baja se podia volver a abrir justo cuando la conexion fallaba. */
+      return alert("No se pudo confirmar si este punto está bloqueado (revise la señal e inténtelo otra vez).\n\n" +
+        "Por seguridad, no se crea el cliente hasta poder confirmarlo.");
+    }
     const choca = clienteQueChoca(nom, tel);
     if (choca && choca.activo === false)
       return alert("A este negocio lo dio de baja la administracion" +
@@ -8250,6 +8267,7 @@ function hojaNuevoCliente(lat, lng){
       ubicadoPor: S.usuario.uid, ubicadoEn: firebase.firestore.FieldValue.serverTimestamp()
     }), $("#nc-guardar"));
     if (ok){ cerrarHoja(); pintarRuta(); }
+    } finally { if (b) b.disabled = false; }
   };
   $("#fondo").classList.add("abierto"); $("#hoja").classList.add("abierta");
 }
