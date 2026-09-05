@@ -13552,6 +13552,7 @@ function rangoTablero(f){
 function adminTablero(m){
   if (!tableroFecha) tableroFecha = hoyISO();
   const f = tableroFecha;
+  const rg = tableroRango;
   const R = rangoTablero(f);
   const [aa,mm,dd] = f.split("-").map(Number);
   const diaSem = new Date(aa, mm-1, dd).getDay();
@@ -13605,7 +13606,13 @@ function adminTablero(m){
      ["tablero por rango: entregas", qe], ["tablero por rango: programadas", qpe]].forEach(x => anotarLectura(x[0], x[1]));
     const programadas = qa.size;
     const c = $("#t-cuerpo");
-    if (!c) return;
+    /* Sin esto, dos clics seguidos en ‹/› o en un chip de rango disparan
+       dos consultas, y si la más vieja contesta DESPUÉS de la más nueva,
+       sus números (Vendido, Cumplimiento, etc.) pisan los del rango que
+       de verdad está en pantalla -sin ningún aviso de que no cuadran con
+       la fecha que se ve arriba. Mismo candado que ya usa
+       adminSupervisores() para su propia fecha. */
+    if (!c || tableroFecha !== f || tableroRango !== rg) return;
     const vis = qv.docs.map(d => d.data());
     const ped = qp.docs.map(d => d.data()).filter(esVenta);
     const verde = vis.filter(v => v.resultado === "pedido").length;
@@ -15413,7 +15420,14 @@ async function adminFicha(m){
     if (c) c.innerHTML = '<div class="aviso mal">No se pudo leer (' + escapar(e.code || e.message) + ').</div>';
     return;
   }
-  if (fichaUid !== D.clave.split("|")[0] || !$("#fi-cuerpo")) return;   // ya cambio de persona mientras cargaba
+  /* Antes solo comparaba la persona (D.clave.split("|")[0]): si alguien
+     cambiaba el rango de fechas dos veces rápido (p. ej. "Ayer" y luego
+     "Esta semana"), la consulta más vieja podía contestar DESPUÉS de la
+     más nueva, pasaba este chequeo -la persona no había cambiado- y
+     pintaba los números de un rango con el encabezado de otro, sin
+     ningún aviso. La clave completa (persona|desde|hasta) es la que de
+     verdad dice si esta respuesta sigue siendo la que está en pantalla. */
+  if (D.clave !== (fichaUid + "|" + fichaFecha + "|" + fichaHasta) || !$("#fi-cuerpo")) return;
 
   /* la ultima senal */
   const senal = $("#fi-senal");
