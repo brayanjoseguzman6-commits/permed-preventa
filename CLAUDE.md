@@ -119,20 +119,41 @@ rótulo del `index.html`, que se quedó en 5.4.7.
 
 ## Pendientes (en orden, cada uno en su rama)
 
-1. **Escrituras de la entrega no atómicas.** Juntar en un `writeBatch` las tres
-   escrituras de `cerrarEntrega`, e incluir `salidasDeEntrega` (hoy queda
-   fuera: llama a `anotarMovimiento` después, sin esperarlo ni ver si falló).
-   Cambia lógica central: probado con calma, fuera de horario de ruta.
-2. **`porFacturar` se reescribe sin mirar si ya se facturó.** El `.set()` pisa
-   el documento y devuelve `estadoFactura` a `pendiente` y `dte` a nulo. Hoy no
-   es alcanzable (no hay cómo reabrir una entrega cerrada); arreglarlo **antes**
-   de que exista cualquier botón de "corregir entrega": no pisar esos dos
-   campos si el documento ya existe facturado.
-3. **Factor de empaque — bloqueado por dato.** La salida se anota con
-   `porBulto: 1`, así que un six pack baja uno del producto base y no seis.
-   Entra cuando oficina cargue las 44 equivalencias: leer el campo `unidad` y
-   convertir al descontar.
+1. ~~**Escrituras de la entrega no atómicas.**~~ **Resuelto.** `cerrarEntrega`
+   ya escribe pedido, entrega, `porFacturar` y kardex en un solo
+   `db.batch()` — o entra todo, o no entra nada. Cubierto por la prueba
+   "todo va en un solo lote" en `puente.prueba.js`.
+2. ~~**`porFacturar` se reescribe sin mirar si ya se facturó.**~~ **Resuelto**
+   (04-09-2026). La regla de `porFacturar` en `reglas-firestore.txt` ya no
+   deja reescribir un documento con `estadoFactura` en `armada`, `prueba` ni
+   `facturada` desde el teléfono — solo `pendiente`/`revisar`. Publicado en
+   producción y verificado contra la regla en vivo.
+3. **Factor de empaque — resuelto en código, falta el dato real.** El kardex
+   (`movimientosDeEntrega`) ya lee `ajustes.presentaciones` y convierte al
+   descontar: un six pack de 6 baja 6 del producto base, no 1. La tabla
+   `EQUIVALENCIAS` de fábrica quedó vacía a propósito (antes tenía 38 códigos
+   de otro cliente, ya limpiados). Falta que PERMED cargue sus presentaciones
+   reales en Ajustes → Avanzado; mientras tanto cada producto sigue bajando
+   1 a 1, como siempre.
 4. **Kilometraje y combustible obligatorios para el motorista**, como lo pidió
-   el jefe.
-5. **Alinear la hora de cierre.** Ajustes dice 16:00 y las reglas de Firestore
-   permiten hasta 18:45. Cuál es la buena es decisión de Brayan/Abner.
+   el jefe. **Kilometraje: resuelto** — `cerrarEntrega` no deja cerrar
+   ninguna entrega (entregada, rechazada o con error) sin el marcador de
+   salida anotado en la pestaña Camión; manda para allá si falta.
+   **Combustible: a propósito no se bloquea** — un día sin compra de
+   combustible es válido, y forzar una anotación ese día solo produciría
+   datos inventados. Sigue como recordatorio (aviso en Mi día) y el registro
+   ya existe en la pestaña Camión. Si el jefe de verdad quiere un bloqueo
+   diario ("confirme que no compró combustible hoy" o similar), es decisión
+   de Brayan: decir cómo lo quiere y se agrega.
+5. **Hora de cierre — revisado, no es el problema que parecía.** La
+   descripción original de este punto ("Ajustes dice 16:00 y las reglas
+   permiten hasta 18:45") ya no correspondía con el código: hoy Ajustes trae
+   `18:45` por defecto y las reglas de Firestore permiten escribir hasta las
+   **21:30** (`enJornada()` en `reglas-firestore.txt`). Son dos cosas
+   distintas a propósito: `horaCierre` de Ajustes es el corte de VENTA que
+   decide Brayan (después de esa hora, un pedido nuevo entra como
+   adicional); la ventana de las reglas es un límite técnico de escritura
+   nocturno, y además **no aplica a despacho**: `puedeAhora()` deja pasar a
+   admin, supervisor y despacho sin mirar la hora, así el motorista cierra
+   entregas a la hora que lleguen. No hay nada que alinear salvo que Brayan
+   quiera mover el corte de venta; si es así, se cambia solo en Ajustes.
