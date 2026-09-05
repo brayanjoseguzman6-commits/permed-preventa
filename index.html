@@ -11438,9 +11438,14 @@ function ajustesReparto(pedidos){
 }
 
 function totalAjustado(ped, aj){
+  // dosDec por LÍNEA, como totalEntrega()/totalCarrito() -no dosDec de la
+  // suma cruda al final-. Es la hoja que lleva el motorista, así que hoy
+  // no toca lo cobrado; pero sumar distinto que el resto del sistema es
+  // justo el hueco que un día produce un centavo de diferencia.
   return dosDec((ped.lineas || []).reduce((t,l) => {
     const a = aj && aj[l.cod];
-    return t + (a ? a.va : (Number(l.cant)||0)) * (Number(l.precio)||0);
+    const cant = a ? a.va : (Number(l.cant)||0);
+    return t + dosDec(cant * (Number(l.precio)||0));
   }, 0));
 }
 

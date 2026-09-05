@@ -119,6 +119,20 @@ prueba("un pedido viejo sin líneas cae a su total y no revienta", () => {
   igual(montoEntregado(null), 0);
 });
 
+prueba("totalAjustado() (la hoja de reparto) suma líneas ya redondeadas, igual que las demás", () => {
+  // Bug real, encontrado en revisión (05-09-2026): esta función redondeaba
+  // la suma cruda al final, distinto a totalCarrito/totalEntrega/
+  // montoEntregado -que sí suman dosDec por línea, como manda CLAUDE.md-.
+  // Con estas dos líneas de 0.335 la diferencia es real: 0.34+0.34=0.68
+  // por línea, contra dosDec(0.335+0.335)=dosDec(0.67)=0.67 de la suma
+  // cruda. Hoy esta función solo pinta la hoja que lleva el motorista, no
+  // lo que se cobra, pero sumar distinto es el mismo hueco que ya se
+  // tapó en todos los demás totales.
+  const { totalAjustado } = cargar(["dosDec", "totalAjustado"]);
+  const ped = { lineas: [{ cod: "A", cant: 1, precio: 0.335 }, { cod: "B", cant: 1, precio: 0.335 }] };
+  igual(totalAjustado(ped, null), 0.68);
+});
+
 /* ------------------------- precios y piso ------------------------- */
 
 grupo("La plata: el precio que se cobra y hasta dónde se rebaja");
