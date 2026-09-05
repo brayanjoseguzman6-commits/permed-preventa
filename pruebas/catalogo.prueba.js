@@ -9,7 +9,7 @@
 */
 "use strict";
 const { grupo, prueba, igual, cierto, falso } = require("./decir");
-const { cargar } = require("./leer");
+const { cargar, sacar } = require("./leer");
 
 grupo("El catálogo: fusionar con el Excel sin perder ediciones");
 
@@ -65,4 +65,28 @@ prueba("al soltar la marca de edición, el próximo Excel ya lo actualiza normal
   const { productos, respetados } = fusionarCatalogo(actuales, nuevos);
   igual(productos[0].nombre, "Alitas nuevas");
   igual(respetados, []);
+});
+
+grupo("El catálogo: guardarCatalogo() no borra el piso que trajo el Excel");
+
+/* Bug real, encontrado en revisión (05-09-2026): editarProducto guarda el
+   catálogo ENTERO (S.catalogo.slice()), así que guardarCatalogo() se
+   ejecuta sobre TODOS los productos cada vez que se edita UNO. Antes,
+   cualquier producto SIN costo cargado en S.costos perdía su precioMin en
+   ese mismo guardado -aunque ese precioMin viniera directo del Excel de
+   Handy (leerCatalogoHandy, campo "min"), no de un cálculo con costo. Editar
+   un producto cualquiera borraba en silencio el piso de otros 370 que
+   nadie estaba tocando. guardarCatalogo() habla con Firestore (igual que
+   cerrarEntrega), así que se prueba leyendo el código, no ejecutándolo. */
+const GUARDAR_CATALOGO = sacar("guardarCatalogo");
+
+prueba("sin costo, ya NO se borra el precioMin que ya traía el producto", () => {
+  falso(GUARDAR_CATALOGO.includes("delete copia.precioMin"),
+    "sin esta guarda, un producto con precioMin del Excel lo pierde al guardar CUALQUIER otro producto");
+});
+
+prueba("con costo, el precioMin se sigue recalculando de ahí -eso no cambió-", () => {
+  cierto(GUARDAR_CATALOGO.includes("if (c != null)") &&
+         GUARDAR_CATALOGO.includes("copia.precioMin = Math.round(c *"),
+    "un producto CON costo tiene que seguir recalculando su piso cada vez que se guarda");
 });

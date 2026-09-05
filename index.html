@@ -4990,10 +4990,22 @@ async function guardarCatalogo(productos, mensaje){
   const conPiso = productos.map(p => {
     const copia = Object.assign({}, p);
     const c = costoBase(p.cod);
+    /* Si hay costo, el piso se recalcula de ahi -como siempre-. Si NO hay
+       costo, no se toca lo que ya traiga precioMin: puede venir de un
+       Excel que trajo su propio minimo (leerCatalogoHandy, campo "min"),
+       sin pasar nunca por S.costos. Antes esta funcion se ejecutaba
+       encima de TODO el catalogo cada vez que se guardaba CUALQUIER
+       producto (editarProducto guarda el arreglo entero), asi que editar
+       un producto cualquiera borraba en silencio el piso importado de
+       otros 370 que nadie estaba tocando. */
     if (c != null){
       copia.precioMin = Math.round(c * (1 + (p.margen ?? S.ajustes.margenGeneral)/100) * 100)/100;
+    }
+    if (copia.precioMin != null){
       copia.descMax = copia.precio ? Math.max(0, Math.round((copia.precio - copia.precioMin)/copia.precio*1000)/10) : 0;
-    } else { delete copia.precioMin; delete copia.descMax; }
+    } else {
+      delete copia.descMax;
+    }
     return copia;
   });
   await db.collection("configuracion").doc("catalogo").set({
