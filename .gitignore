@@ -31,3 +31,6 @@ Thumbs.db
 .DS_Store
 .vscode/
 .idea/
+
+# ===== Cache local del CLI de Firebase =====
+.firebase/
