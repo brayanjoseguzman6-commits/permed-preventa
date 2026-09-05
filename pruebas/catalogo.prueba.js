@@ -90,3 +90,12 @@ prueba("con costo, el precioMin se sigue recalculando de ahí -eso no cambió-",
          GUARDAR_CATALOGO.includes("copia.precioMin = Math.round(c *"),
     "un producto CON costo tiene que seguir recalculando su piso cada vez que se guarda");
 });
+
+prueba("editarProducto() apaga el botón y avisa si el guardado falla, como todo lo demás", () => {
+  // Antes guardaba directo, sin pasar por guardarEn(): sin apagar el
+  // botón (doble toque = dos escrituras) y sin aviso si Firestore
+  // rechazaba el guardado (el admin creía que había quedado guardado).
+  const EDITAR = sacar("editarProducto");
+  cierto(EDITAR.includes('guardarEn("configuracion"'),
+    "el guardado de un producto tiene que pasar por guardarEn(), como el resto de la app");
+});

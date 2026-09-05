@@ -5345,9 +5345,15 @@ function editarProducto(i){
     if (isNaN(c) && isNaN(cu)) delete costos[p.cod];
     else costos[p.cod] = {prom: isNaN(c) ? cu : c, ult: isNaN(cu) ? c : cu};
     S.costos = costos;
-    await db.collection("configuracion").doc("costos").set({actualizado: firebase.firestore.FieldValue.serverTimestamp(), costos});
-    await guardarCatalogo(productos);
-    cerrarHoja(); pintarAdmin();
+    /* Antes esto no pasaba por guardarEn(): sin apagar el botón y sin
+       aviso si algo fallaba (jornada cerrada, sin señal), un doble toque
+       mandaba dos escrituras seguidas y un fallo se perdía en silencio
+       -el admin se quedaba pensando que había guardado y no era cierto. */
+    const ok = await guardarEn("configuracion", async () => {
+      await db.collection("configuracion").doc("costos").set({actualizado: firebase.firestore.FieldValue.serverTimestamp(), costos});
+      await guardarCatalogo(productos);
+    }, $("#e-guardar"));
+    if (ok){ cerrarHoja(); pintarAdmin(); }
   };
   $("#fondo").classList.add("abierto"); $("#hoja").classList.add("abierta");
 }
