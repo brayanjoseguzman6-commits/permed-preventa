@@ -13957,7 +13957,12 @@ function pintarCuentasDelMes(){
     if (!$("#co-cuentas")) return;
     const ped = qp.docs.map(d => Object.assign({id:d.id}, d.data()));
     const cargos = (qc.docs||[]).map(d => d.data()).filter(x => x.estado === "aceptado");
-    const abc = clasificarABC(ped);
+    /* Igual que porUid unas líneas abajo: un pedido rechazado no puede
+       contar para decidir si un producto es A, B o C. Si se cuela,
+       infla el volumen de esa categoría y puede correr el corte del
+       80%/95% -- y esa clasificación es la que decide el % de comisión
+       que se aplica sobre la venta REAL de cada vendedor. */
+    const abc = clasificarABC(ped.filter(esVenta));
     S.abc = abc;
 
     const porUid = {};
