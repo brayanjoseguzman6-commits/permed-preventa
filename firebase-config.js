@@ -2,7 +2,8 @@
    Datos del proyecto de Firebase — PERMED
 
    Proyecto real: `preventa-permed`, creado el 04-09-2026 desde la
-   cuenta de Abner. No hay que tocar nada acá.
+   cuenta de Brayan (dueño del proyecto — confirmado como "Propietario"
+   en IAM de Google Cloud el 05-09-2026). No hay que tocar nada acá.
 
    Estos seis valores NO son secretos: viajan dentro de la página y
    cualquiera que abra la app los puede leer. Lo que protege los datos
