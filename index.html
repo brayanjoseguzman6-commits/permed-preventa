@@ -5061,6 +5061,43 @@ function leerCatalogoHandy(filas){
   return out;
 }
 
+/* Junta el catalogo de ahora con lo que trae un Excel nuevo, sin perder
+   lo que alguien corrigio a mano ni borrar lo que el archivo no trae.
+   - Codigo nuevo (no estaba): entra tal como lo trae el Excel.
+   - Codigo que nadie edito a mano: se actualiza con lo del Excel.
+   - Codigo editado a mano (trae `editado`): se respeta la version de aqui.
+     Lo que ofrece el Excel para ese codigo queda anotado en
+     `pendienteExcel`, para poder verlo y soltarlo con un boton sin que se
+     pierda de vista.
+   - Codigo que existe aqui pero el Excel no lo trae: se queda igual. El
+     export de otro sistema puede venir incompleto; ausencia no es orden
+     de borrar. */
+function fusionarCatalogo(actuales, nuevos){
+  const porCod = {};
+  (actuales || []).forEach(p => { porCod[p.cod] = Object.assign({}, p); });
+  const respetados = [];
+  (nuevos || []).forEach(n => {
+    const actual = porCod[n.cod];
+    if (!actual){
+      porCod[n.cod] = Object.assign({}, n);
+      return;
+    }
+    if (actual.editado){
+      porCod[n.cod] = Object.assign({}, actual, {pendienteExcel: n});
+      respetados.push(n.cod);
+      return;
+    }
+    const fusion = Object.assign({}, actual, n);
+    delete fusion.editado;
+    delete fusion.pendienteExcel;
+    porCod[n.cod] = fusion;
+  });
+  return {
+    productos: Object.keys(porCod).map(k => porCod[k]),
+    respetados: respetados
+  };
+}
+
 function adminCargarCatalogo(m){
   m.innerHTML =
     '<div class="pasos"><div class="eyebrow">Cargar el catálogo desde un Excel</div>' +
@@ -5107,15 +5144,29 @@ function adminCargarCatalogo(m){
           (alReves ? alReves + " producto(s) tienen el <b>precio m\u00ednimo m\u00e1s alto que el precio</b>. " +
             "Eso est\u00e1 al rev\u00e9s, as\u00ed que a esos se les ignora el m\u00ednimo." : "") +
           '</div>' : '') +
-      '<div class="aviso"><b>Al cargar se reemplaza el cat\u00e1logo completo.</b><br>' +
-        'Los ' + S.catalogo.length + ' productos de ahora se van y quedan estos ' + catFilas.length + '. ' +
-        'Los pedidos viejos no se tocan. Baje un respaldo antes, en la pesta\u00f1a Productos.</div>' +
+      (function(){
+        /* Vista previa del fusionado, ANTES de guardar nada: cuantos son
+           nuevos, cuantos se actualizan solos, y cuantos quedan respetados
+           por estar editados a mano (esos no se tocan). */
+        const prev = fusionarCatalogo(S.catalogo, catFilas);
+        const codsActuales = {}; S.catalogo.forEach(p => codsActuales[p.cod] = true);
+        const nuevos = catFilas.filter(x => !codsActuales[x.cod]).length;
+        const actualizan = catFilas.length - nuevos - prev.respetados.length;
+        const noVienen = S.catalogo.length - (catFilas.length - nuevos);
+        return '<div class="aviso"><b>No se borra nada por no venir en el archivo.</b><br>' +
+          nuevos + ' producto(s) nuevo(s) \u00b7 ' + actualizan + ' se actualizan con el archivo \u00b7 ' +
+          (prev.respetados.length
+            ? '<b>' + prev.respetados.length + ' quedan como est\u00e1n</b> por estar editados a mano ' +
+              '(se ven marcados en Productos, con bot\u00f3n para soltarlos si se quiere aceptar el archivo)'
+            : '0 editados a mano en conflicto') +
+          (noVienen > 0 ? ' \u00b7 ' + noVienen + ' que no vienen en el archivo se quedan igual' : '') +
+          '</div>';
+      })() +
       '<button class="btn" id="cc-subir">Cargar los ' + catFilas.length + ' productos</button>';
 
     $("#cc-subir").onclick = async () => {
-      if (!confirm("Se reemplaza el cat\u00e1logo completo:\n\n" +
-        S.catalogo.length + " productos de ahora \u2192 " + catFilas.length + " del archivo.\n\n" +
-        "\u00bfSeguro?")) return;
+      if (!confirm("Se junta el cat\u00e1logo de ahora con lo que trae el archivo " +
+        "(sin borrar lo que no venga, y sin pisar lo editado a mano).\n\n\u00bfSeguro?")) return;
       const limpios = catFilas.map(x => {
         const c = Object.assign({}, x);
         /* sinImpuesto YA NO se borra. Era una marca de la pantalla de
@@ -5128,17 +5179,21 @@ function adminCargarCatalogo(m){
         delete c.minAlReves;
         return c;
       });
+      const fusion = fusionarCatalogo(S.catalogo, limpios);
       const ok = await guardarEn("configuracion", () =>
         db.collection("configuracion").doc("catalogo").set({
           version: (S.catVersion || 0) + 1,
           origen: "Excel \u00b7 " + hoyISO(),
           actualizado: firebase.firestore.FieldValue.serverTimestamp(),
-          productos: limpios
+          productos: fusion.productos
         }), $("#cc-subir"));
       if (ok){
         catFilas = [];
-        alert("Listo: " + limpios.length + " productos cargados.\n\n" +
-          "A los tel\u00e9fonos les llega solo, no hay que hacer nada m\u00e1s.");
+        alert("Listo: " + fusion.productos.length + " productos en el cat\u00e1logo" +
+          (fusion.respetados.length
+            ? " (" + fusion.respetados.length + " se quedaron con la versi\u00f3n editada a mano)."
+            : ".") +
+          "\n\nA los tel\u00e9fonos les llega solo, no hay que hacer nada m\u00e1s.");
         pintarAdmin();
       }
     };
@@ -5161,11 +5216,21 @@ function adminProductos(m){
     const tr = document.createElement("tr");
     tr.innerHTML =
       '<td><b>' + escapar(p.nombre) + '</b><br><span style="color:var(--tenue);font-size:11px">' + p.cod + ' · ' + (p.cat||"") +
-        (p.visible === false ? ' · oculto para preventa' : '') + '</span></td>' +
+        (p.visible === false ? ' · oculto para preventa' : '') + '</span>' +
+        (p.editado
+          ? '<br><span style="background:#FDF3D9;color:#7A5B00;font-size:10.5px;font-weight:700;' +
+            'padding:2px 6px;border-radius:6px;display:inline-block;margin-top:3px">Editado por ' +
+            escapar(p.editado.por || "alguien") + ' · ' + escapar(p.editado.en || "") + '</span>'
+          : '') + '</td>' +
       '<td class="num">' + money(p.precio) + '</td>' +
       '<td class="num">' + (piso ? money(piso) : '—') + '</td>' +
-      '<td><button class="btn linea chico" data-i="' + i + '">Editar</button></td>';
-    tr.querySelector("button").onclick = () => editarProducto(i);
+      '<td><button class="btn linea chico" data-i="' + i + '">Editar</button>' +
+        (p.pendienteExcel
+          ? '<button class="btn linea chico p-soltar" data-i="' + i + '" style="margin-top:6px">Soltar</button>'
+          : '') + '</td>';
+    tr.querySelector(".btn.linea.chico:not(.p-soltar)").onclick = () => editarProducto(i);
+    const bs = tr.querySelector(".p-soltar");
+    if (bs) bs.onclick = () => soltarPendienteExcel(i);
     tb.appendChild(tr);
   });
   $("#a-revisar").onclick = revisarPermisos;
@@ -5242,7 +5307,10 @@ function editarProducto(i){
       margen: parseFloat($("#e-margen").value) || 0,
       unidad: $("#e-unidad").value.trim().toUpperCase() || null,
       visible: $("#e-visible").checked,
-      provisional: $("#e-prov").checked
+      provisional: $("#e-prov").checked,
+      /* Marca de "esto lo corrigió una persona": es lo que hace que la
+         próxima carga de Excel respete este producto en vez de pisarlo. */
+      editado: {por: S.nombre || "", uid: (S.usuario && S.usuario.uid) || "", en: hoyISO()}
     });
     if (!productos[i].unidad) delete productos[i].unidad;
     productos[i].docena = Math.round(productos[i].precio * 11.4 * 100)/100;
@@ -5257,6 +5325,22 @@ function editarProducto(i){
     cerrarHoja(); pintarAdmin();
   };
   $("#fondo").classList.add("abierto"); $("#hoja").classList.add("abierta");
+}
+
+/* "Soltar": el producto quedó marcado como editado a mano, así que la
+   última carga de Excel no lo tocó y dejó su versión pendiente aparte
+   (pendienteExcel). Esto aplica esa versión y quita las dos marcas. */
+async function soltarPendienteExcel(i){
+  const p = S.catalogo[i];
+  if (!p || !p.pendienteExcel) return;
+  if (!confirm('¿Reemplazar "' + p.nombre + '" con los datos del último Excel? Se pierde la edición manual.')) return;
+  const productos = S.catalogo.slice();
+  const nuevo = Object.assign({}, p, p.pendienteExcel);
+  delete nuevo.editado;
+  delete nuevo.pendienteExcel;
+  productos[i] = nuevo;
+  await guardarCatalogo(productos, 'Listo: "' + nuevo.nombre + '" quedó con los datos del Excel.');
+  pintarAdmin();
 }
 
 function adminCostos(m){
