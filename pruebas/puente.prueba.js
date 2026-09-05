@@ -103,14 +103,16 @@ prueba("todo va en un solo lote: o entra completo, o no entra nada", () => {
 
 grupo("El puente: el kardex de bodega");
 
+const DEPS_KARDEX = ["correlativo", "unidadDe", "nombreProd", "docMovimiento",
+  "dosDec", "EQUIVALENCIAS", "equivalencias", "movimientosDeEntrega"];
+
 prueba("cada línea entregada saca su propio número de movimiento", () => {
   // Antes las líneas de una misma entrega salían todas con el MISMO
   // número, porque se contaban sobre la lista sin haber guardado ninguna.
-  const S = { movs: [], usuario: { uid: "u1" }, nombre: "Motorista",
+  const S = { movs: [], usuario: { uid: "u1" }, nombre: "Motorista", ajustes: {},
               catalogo: [{ cod: "A", nombre: "Alitas", unidad: "UNIDAD" }] };
   const firebase = { firestore: { FieldValue: { serverTimestamp: () => "ahora" } } };
-  const { movimientosDeEntrega } = cargar(
-    ["correlativo", "unidadDe", "nombreProd", "docMovimiento", "movimientosDeEntrega"],
+  const { movimientosDeEntrega } = cargar(DEPS_KARDEX,
     { S, firebase, hoyISO: () => "2026-09-04" });
 
   const movs = movimientosDeEntrega(
@@ -123,6 +125,49 @@ prueba("cada línea entregada saca su propio número de movimiento", () => {
   igual(movs.length, 2, "la línea entregada en cero no mueve bodega");
   const numeros = movs.map(m => m.num);
   igual(numeros.length, new Set(numeros).size, "dos movimientos no pueden llevar el mismo número");
+});
+
+prueba("un six pack baja del producto base las unidades que trae, no una", () => {
+  // El hueco que dejó anotado Abner: "la salida se anota con porBulto:1,
+  // así que un six pack baja uno del producto base y no seis". La tabla
+  // de equivalencias (la misma que usa Portafolio) es la que dice cuánto
+  // trae cada presentación.
+  const S = { movs: [], usuario: { uid: "u1" }, nombre: "Motorista",
+              ajustes: { presentaciones: [["DMP-LECHE", "DMP-LECHE-6", 6],
+                                           ["DMP-LECHE", "DMP-LECHE-CAJA", 24]] },
+              catalogo: [{ cod: "DMP-LECHE", nombre: "DMP Leche", unidad: "UNIDAD" },
+                         { cod: "DMP-LECHE-6", nombre: "DMP Leche six pack", unidad: "SIX PACK" }] };
+  const firebase = { firestore: { FieldValue: { serverTimestamp: () => "ahora" } } };
+  const { movimientosDeEntrega } = cargar(DEPS_KARDEX,
+    { S, firebase, hoyISO: () => "2026-09-04" });
+
+  const movs = movimientosDeEntrega(
+    { id: "ped1", clienteId: "c1", clienteNombre: "La tienda" },
+    { nombre: "La tienda" },
+    [{ cod: "DMP-LECHE-6", nombre: "DMP Leche six pack", cant: 2, precio: 3, entregado: 2 }]);
+
+  igual(movs.length, 1);
+  igual(movs[0].cod, "DMP-LECHE", "el que baja de bodega es el producto base, no el six pack");
+  igual(movs[0].unidades, 12, "2 six packs de 6 son 12 unidades de bodega, no 2");
+  igual(movs[0].porBulto, 6);
+  igual(movs[0].bultos, 2);
+});
+
+prueba("un producto sin presentación registrada baja unidad por unidad, como antes", () => {
+  const S = { movs: [], usuario: { uid: "u1" }, nombre: "Motorista", ajustes: {},
+              catalogo: [{ cod: "A", nombre: "Alitas", unidad: "UNIDAD" }] };
+  const firebase = { firestore: { FieldValue: { serverTimestamp: () => "ahora" } } };
+  const { movimientosDeEntrega } = cargar(DEPS_KARDEX,
+    { S, firebase, hoyISO: () => "2026-09-04" });
+
+  const movs = movimientosDeEntrega(
+    { id: "ped1", clienteId: "c1", clienteNombre: "La tienda" },
+    { nombre: "La tienda" },
+    [{ cod: "A", nombre: "Alitas", cant: 5, precio: 1, entregado: 5 }]);
+
+  igual(movs[0].cod, "A");
+  igual(movs[0].unidades, 5, "sin equivalencia registrada, se sigue bajando 1 a 1");
+  igual(movs[0].porBulto, 1);
 });
 
 prueba("el correlativo va con ceros adelante, por tipo y con corrimiento", () => {

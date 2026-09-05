@@ -11137,13 +11137,22 @@ function movimientosDeEntrega(ped, cliente, lineas){
   (lineas || []).forEach(l => {
     const sale = Number(l.entregado != null ? l.entregado : l.cant) || 0;
     if (sale <= 0) return;
+    /* Si lo que se vendio es la PRESENTACION de otro producto (un six pack,
+       una caja...), el que baja de bodega es el de ABAJO (producto base),
+       y baja las unidades que trae, no una por bulto. La tabla es la misma
+       que usa Portafolio (equivalencias()): un solo lugar donde cargar
+       "cuantas unidades trae cada presentacion". */
+    const equiv = equivalencias().find(e => e.pres === l.cod);
+    const factor = equiv ? equiv.factor : 1;
+    const codBodega = equiv ? equiv.base : l.cod;
     movs.push(docMovimiento({
-      tipo: "salida", cod: l.cod, unidades: sale,
-      unidad: l.unidad || unidadDe(l.cod),
-      presentacion: "unidad", porBulto: 1, bultos: 0,
+      tipo: "salida", cod: codBodega, unidades: dosDec(sale * factor),
+      unidad: unidadDe(codBodega),
+      presentacion: factor !== 1 ? "bulto" : "unidad", porBulto: factor, bultos: factor !== 1 ? sale : 0,
       area: "reparto",
       nota: "entrega a " + (cliente && cliente.nombre ? cliente.nombre : ped.clienteNombre || "") +
-        " · pedido " + (ped.id || "").slice(0,6),
+        " · pedido " + (ped.id || "").slice(0,6) +
+        (factor !== 1 ? " · vendido como " + (l.nombre || l.cod) : ""),
       pedidoId: ped.id || null,
       clienteId: ped.clienteId || null
     }, movs.length));
