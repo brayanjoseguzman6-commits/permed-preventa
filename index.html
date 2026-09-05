@@ -9997,6 +9997,13 @@ function arrancarPedido(c, tipo){
   if (S.rol === "despacho" || S.rol === "bodega") return;
   if (tipo !== "cambio") S.motivo = null;
   S.notaGuardada = "";
+  /* S.editando se limpia SIEMPRE que se arranca un pedido nuevo. Si
+     quedaba pegado de una edición que se abandonó tocando el fondo
+     (cerrarHoja no lo toca, a propósito: "Salir" es el único que
+     pregunta), guardarPedido() lo usaba para borrar el pedido VIEJO
+     -de OTRO cliente- al guardar este. Un pedido real desaparecía sin
+     aviso. */
+  S.editando = null;
   S.cliente = c; S.tipoDoc = tipo || "pedido"; S.carrito = [];
   cerrarHoja(); irA("catalogo");
 }
@@ -10362,7 +10369,12 @@ async function guardarPedido(){
       : "No se pudo guardar: " + (e.code || e.message));
   }
   if (S.editando){
-    const viejo = S.pedidosHoy.find(x => x.id === S.editando);
+    /* El viejo tiene que ser del MISMO cliente que se acaba de guardar.
+       Es un segundo candado, no el único: arrancarPedido() ya limpia
+       S.editando al arrancar un pedido nuevo. Pero si algún otro camino
+       llega aquí con S.editando pegado de otro cliente, esto evita
+       borrar un pedido real ajeno en vez del que de verdad se corrigió. */
+    const viejo = S.pedidosHoy.find(x => x.id === S.editando && x.clienteId === S.cliente.id);
     /* Si el viejo no se deja borrar, se avisa: si no, quedan dos pedidos
        y la app ya olvido que estaba editando. */
     if (viejo && (await borrarPedido(viejo, null)) === false){
