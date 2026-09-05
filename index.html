@@ -12528,10 +12528,22 @@ async function anotarMovimiento(mov){
       actualizado: firebase.firestore.FieldValue.serverTimestamp()
     });
   } catch(e){
-    await ref.set({
-      disponible: signo * doc.unidades, nombre: doc.nombre, unidad: doc.unidad,
-      actualizado: firebase.firestore.FieldValue.serverTimestamp()
-    }, {merge:true});
+    /* SOLO si la ficha no existia se abre con .set(): ahi disponible es un
+       valor absoluto porque no hay nada que sumarle todavia. Cualquier
+       OTRO error (red, permiso) NO puede caer en el mismo camino: antes lo
+       hacia, y un .set() con {merge:true} sobre una ficha que SI existia
+       reemplazaba el disponible acumulado por solo este movimiento --
+       borraba en silencio todo lo que ya habia. El kardex ya quedo
+       escrito arriba; si la existencia no se pudo mover, que quede
+       pendiente para que bodega la cuadre, no que se invente un número. */
+    if (e && e.code === "not-found"){
+      await ref.set({
+        disponible: signo * doc.unidades, nombre: doc.nombre, unidad: doc.unidad,
+        actualizado: firebase.firestore.FieldValue.serverTimestamp()
+      }, {merge:true});
+    } else {
+      anotarExistenciaPendiente(doc, e);
+    }
   }
   return doc;
 }
