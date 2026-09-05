@@ -11115,6 +11115,18 @@ function hojaNoRecibio(ped, cliente){
 }
 
 async function cerrarEntrega(ped, cliente, ninguno, motivo){
+  /* El kilometraje de salida es obligatorio antes de la primera entrega
+     del día (lo pidió el jefe): sin eso nunca se sabe cuánto rodó el
+     camión. Se revisa aquí porque es el único lugar por donde pasan las
+     tres formas de cerrar una entrega (entregada, rechazada, error). */
+  if (S.rol === "despacho" && datosCamion().kmSalida == null){
+    alert("Antes de la primera entrega, anote el marcador de salida del camión.\n\n" +
+      "Está en la pestaña CAMIÓN, aquí arriba.");
+    cerrarHoja();
+    vistaReparto = "camion";
+    pintarDiaReparto();
+    return;
+  }
   /* Credito fiscal sin NIT o NRC: oficina no puede emitir el CCF. Antes
      nada lo frenaba y la venta llegaba a facturacion coja. Se pregunta;
      si el motorista sigue, va como consumidor final y queda dicho. */

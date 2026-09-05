@@ -61,6 +61,18 @@ grupo("El puente: las guardas que no se pueden perder");
 
 const CERRAR = sacar("cerrarEntrega");
 
+prueba("el motorista no puede cerrar ninguna entrega sin haber anotado el kilometraje de salida", () => {
+  // Lo pidió el jefe: sin el marcador de salida, no hay como saber cuánto
+  // rodó el camión ese día. Tiene que ser lo primero que se revisa, antes
+  // de tocar pedido, entrega, puente o kardex.
+  contiene(CERRAR, 'S.rol === "despacho" && datosCamion().kmSalida == null',
+           "se perdió la guarda del kilometraje obligatorio");
+  const guarda = CERRAR.indexOf("kmSalida == null");
+  const lote = CERRAR.indexOf("db.batch()");
+  cierto(guarda >= 0 && lote >= 0 && guarda < lote,
+    "la guarda del kilometraje tiene que revisarse ANTES de escribir nada");
+});
+
 prueba("una entrega fallida no llega a facturación", () => {
   // `ninguno` es «no recibió nada». Sin esta guarda se emitiría una
   // factura por una venta que no ocurrió.
