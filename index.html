@@ -11137,10 +11137,16 @@ async function cerrarEntrega(ped, cliente, ninguno, motivo){
      tres formas de cerrar una entrega (entregada, rechazada, error). */
   if (S.rol === "despacho" && datosCamion().kmSalida == null){
     alert("Antes de la primera entrega, anote el marcador de salida del camión.\n\n" +
-      "Está en la pestaña CAMIÓN, aquí arriba.");
+      "Lo va a ver de una vez, en la pestaña CAMIÓN.");
     cerrarHoja();
+    /* pintarDiaReparto() solo repinta #dia-cuerpo -- si el motorista viene
+       del mapa (la pantalla normal para "Entregar"), eso queda repintado
+       fuera de vista y el mapa sigue mostrandose, como si nada hubiera
+       pasado. irA("dia") es lo que de verdad cambia de pantalla; ya
+       repinta con pintarDia(), que para despacho llama a
+       pintarDiaReparto() sola. */
     vistaReparto = "camion";
-    pintarDiaReparto();
+    irA("dia");
     return;
   }
   /* Credito fiscal sin NIT o NRC: oficina no puede emitir el CCF. Antes

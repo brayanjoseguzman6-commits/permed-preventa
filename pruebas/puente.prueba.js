@@ -71,6 +71,14 @@ prueba("el motorista no puede cerrar ninguna entrega sin haber anotado el kilome
   const lote = CERRAR.indexOf("db.batch()");
   cierto(guarda >= 0 && lote >= 0 && guarda < lote,
     "la guarda del kilometraje tiene que revisarse ANTES de escribir nada");
+  // Bug real (05-09-2026): la guarda llamaba a pintarDiaReparto(), que solo
+  // repinta #dia-cuerpo. Si el motorista venía del mapa (el camino normal
+  // para "Entregar"), la pantalla seguía siendo el mapa: el aviso decía
+  // "aquí arriba" pero nada visible cambiaba. irA("dia") es lo que de
+  // verdad cambia de pantalla.
+  const bloqueGuarda = CERRAR.slice(guarda, CERRAR.indexOf("return;", guarda));
+  contiene(bloqueGuarda, 'irA("dia")',
+    "la guarda tiene que CAMBIAR de pantalla a Mi día, no solo repintarla por dentro");
 });
 
 prueba("una entrega fallida no llega a facturación", () => {
