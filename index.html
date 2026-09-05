@@ -5890,12 +5890,25 @@ function adminPortafolio(m){
 }
 
 function adminAjustes(m){
+  /* Ajustes juntaba 16 secciones sueltas, una tras otra: para llegar a la
+     de abajo habia que pasar por encima de las 15 de arriba. Se agrupan en
+     5 temas con el MISMO acordeon que ya usa el resto de la app (.plega,
+     el de "Datos para facturar" y "Ultimas compras"): mismos campos,
+     mismos ids, mismo boton de Guardar unico al final -- solo cambia
+     cuanto hay que scrollear para encontrar cada cosa. */
+  const grupo = (id, abierto, titulo, resumen, cuerpo) =>
+    '<details class="plega" id="' + id + '"' + (abierto ? " open" : "") + '>' +
+    '<summary>' + titulo + '<span class="marca-f">' + resumen + '</span></summary>' +
+    '<div class="adentro">' + cuerpo + '</div></details>';
+
   m.innerHTML =
     /* El aviso 'oficina ya manda datos' vive aqui y no en la portada: es una
        decision de una sola vez (apagar de este lado lo que ellos llevan),
        no trabajo del dia. */
     (S.rol === "admin" ? avisoOficinaLlego() : "") +
-    '<div class="pasos"><div class="eyebrow">Margen general</div>' +
+
+    grupo("aj-horario", true, "Horario y reparto", "lo de todos los días",
+    '<div class="eyebrow" style="margin-top:16px">Margen general</div>' +
     '<p style="font-size:14px;margin:8px 0 0">Es el que se usa cuando un producto no tiene margen propio.</p>' +
     '<label class="campo"><span>Margen sobre el costo (%)</span><input id="s-margen" type="number" value="' + S.ajustes.margenGeneral + '"></label>' +
     '<div class="eyebrow" style="margin-top:20px">Días para entregar</div>' +
@@ -5933,16 +5946,10 @@ function adminAjustes(m){
     })() +
     '<div id="s-htxt" class="conteo" style="margin-top:6px"></div>' +
     '<p style="font-size:13px;color:var(--tenue);margin:8px 0 0">Esto solo apaga los botones. ' +
-    'El bloqueo de verdad lo hace el servidor con su propia hora, as\u00ed que no se salta cambiando la hora del tel&eacute;fono.</p>' +
-    '<div class="eyebrow" style="margin-top:20px">Cuentas para transferencia</div>' +
-    '<p style="font-size:14px;margin:8px 0 0">Las que ve el motorista cuando el cliente no trae efectivo. ' +
-    'Una l&iacute;nea por cuenta, separando con punto y coma:<br>' +
-    '<code>banco;titular;numero;tipo;celular</code></p>' +
-    '<textarea id="s-cuentas" rows="4" style="margin-top:10px" ' +
-      'placeholder="Banco;Nombre de la cuenta;Número de cuenta;Tipo;Teléfono">' +
-      escapar((S.ajustes.cuentas || []).map(c =>
-        [c.banco||"", c.titular||"", c.numero||"", c.tipo||"", c.celular||""].join(";")).join("\n")) +
-    '</textarea>' +
+    'El bloqueo de verdad lo hace el servidor con su propia hora, as\u00ed que no se salta cambiando la hora del tel&eacute;fono.</p>'
+    ) +
+
+    grupo("aj-clientes", false, "Clientes y ticket", "códigos y el papel del ticket",
     '<div class="eyebrow" style="margin-top:20px">C&oacute;digos de cliente</div>' +
     '<p style="font-size:14px;margin:8px 0 0">La app se los pone sola al crear el cliente. ' +
     'Ponga aqu&iacute; la numeraci&oacute;n que ya usa la distribuidora para que no choquen. ' +
@@ -5970,7 +5977,22 @@ function adminAjustes(m){
           'type="number" min="1" value="' + (Number(S.ajustes.ticketDesde) || 1) + '"></label>' +
         '<p style="font-size:12px;color:var(--tenue);margin:6px 0 0">El n&uacute;mero corre solo al imprimir ' +
         'en oficina. Cada pedido se queda con el suyo, as&iacute; que una reimpresi&oacute;n saca el mismo.</p>';
-    })() +
+    })()
+    ) +
+
+    grupo("aj-pagos", false, "Pagos", "cuentas para transferencia",
+    '<div class="eyebrow" style="margin-top:20px">Cuentas para transferencia</div>' +
+    '<p style="font-size:14px;margin:8px 0 0">Las que ve el motorista cuando el cliente no trae efectivo. ' +
+    'Una l&iacute;nea por cuenta, separando con punto y coma:<br>' +
+    '<code>banco;titular;numero;tipo;celular</code></p>' +
+    '<textarea id="s-cuentas" rows="4" style="margin-top:10px" ' +
+      'placeholder="Banco;Nombre de la cuenta;Número de cuenta;Tipo;Teléfono">' +
+      escapar((S.ajustes.cuentas || []).map(c =>
+        [c.banco||"", c.titular||"", c.numero||"", c.tipo||"", c.celular||""].join(";")).join("\n")) +
+    '</textarea>'
+    ) +
+
+    grupo("aj-mapa", false, "Mapa y visitas", "geocerca y pines",
     /* ===== Geocerca ===== */
     (function(){
       const g = S.ajustes.geocerca || {};
@@ -5994,6 +6016,15 @@ function adminAjustes(m){
         'bloquear a ciegas dejar&iacute;a al vendedor parado en la tienda sin poder levantar el pedido. ' +
         'A la se&ntilde;al imprecisa se le suma su margen de error, hasta 150 metros.</p>';
     })() +
+    '<div class="eyebrow" style="margin-top:20px">Marcadores del mapa</div>' +
+    '<label class="campo"><span>Cómo se ve cada cliente en el mapa</span>' +
+      '<select id="s-pin-estilo">' +
+        '<option value="casita"' + (estiloPin() === "casita" ? " selected" : "") + '>Cajita azul con el número chiquito</option>' +
+        '<option value="numero"' + (estiloPin() === "numero" ? " selected" : "") + '>Gota con el número grande</option>' +
+      '</select></label>'
+    ) +
+
+    grupo("aj-avanzado", false, "Avanzado", "bodega, oficina, PIN, respaldo",
     /* ===== Qué lleva oficina =====
        El dia que arranque el puente con el sistema de oficina, estas
        llaves apagan de este lado lo que ellos van a llevar. Apagadas,
@@ -6021,12 +6052,6 @@ function adminAjustes(m){
         fila("comisiones", "Metas y comisiones",
           "El c\u00e1lculo pasa a oficina. Aqu\u00ed se sigue mostrando el avance del vendedor.");
     })() +
-    '<div class="eyebrow" style="margin-top:20px">Marcadores del mapa</div>' +
-    '<label class="campo"><span>Cómo se ve cada cliente en el mapa</span>' +
-      '<select id="s-pin-estilo">' +
-        '<option value="casita"' + (estiloPin() === "casita" ? " selected" : "") + '>Cajita azul con el número chiquito</option>' +
-        '<option value="numero"' + (estiloPin() === "numero" ? " selected" : "") + '>Gota con el número grande</option>' +
-      '</select></label>' +
     '<div class="eyebrow" style="margin-top:20px">PIN para ver costos</div>' +
     '<p style="font-size:14px;margin:8px 0 0">Toque su nombre, arriba a la derecha. En la hoja que se abre, hasta abajo, hay una l&iacute;nea gris con la versi&oacute;n de la app: t&oacute;quela cinco veces seguidas y le pide este PIN. Solo funciona en cuentas de administraci&oacute;n, y los costos se vuelven a ocultar al cerrar la app.</p>' +
     '<label class="campo"><span>PIN</span><input id="s-pin" type="text" inputmode="numeric" value="' + escapar(S.ajustes.pin||"") + '"></label>' +
@@ -6044,15 +6069,17 @@ function adminAjustes(m){
         '<input class="s-dc" data-cat="' + escapar(c) + '" type="number" min="1" max="365" placeholder="' +
         diasCapitalDe("*") + '" value="' + ((S.ajustes.diasCapital||{})[c] != null ? S.ajustes.diasCapital[c] : "") + '"></label>').join("") +
     '</div>' +
-    '<button class="btn" id="s-guardar" style="margin-top:16px">Guardar ajustes</button>' +
-    '<div id="s-aviso" class="aviso oculto"></div></div>' +
     '<div class="pasos"><div class="eyebrow">Versión</div><p style="font-size:14px;margin:8px 0 0">App ' + VERSION + ' · catálogo versión ' + S.catVersion + '</p></div>' +
     '<div class="pasos"><div class="eyebrow">Respaldo completo del sistema</div>' +
       '<p style="font-size:14px;margin:8px 0 0">Un archivo con todo: clientes, pedidos, entregas, ' +
       'visitas, existencias, cuentas, rutas y lo dem\u00e1s. Para el d\u00eda que haya que migrar a otro ' +
       'sistema o guardar una copia de seguridad real. No lleva contrase\u00f1as ni cuentas de acceso.</p>' +
       '<button class="btn linea" id="s-respaldo" style="margin-top:10px">Bajar respaldo completo</button>' +
-    '</div>';
+    '</div>'
+    ) +
+
+    '<div class="pasos"><button class="btn" id="s-guardar">Guardar ajustes</button>' +
+    '<div id="s-aviso" class="aviso oculto"></div></div>';
   const hora12 = v => {
     if (!v) return "";
     const [h, mnt] = v.split(":").map(Number);
