@@ -3023,9 +3023,18 @@ function pintarOficinaHoy(){
   const cont = $("#ofi-hoy");
   if (!cont || S.pagina !== "hoy") return;
   const hoy = hoyISO();
-  const peds = (S.pedidosDia || []).filter(x => (x.fecha || "") === hoy && x.estado !== "anulado");
+  /* Mismo filtro que bloqueSeguimiento(), un poco más abajo en esta misma
+     pantalla: un adicional todavía no está aprobado (no cuenta como
+     vendido) y un rechazado nunca lo estuvo -pero sigue con adicional:true
+     para siempre, así que ninguno de los dos se va con solo mirar estado.
+     Antes esta cabecera los contaba a los dos como venta real y los
+     dejaba pegados en "por entregar" hasta el fin de los tiempos, mientras
+     la lista de aquí abajo (que sí filtraba bien) ya los ignoraba. */
+  const peds = (S.pedidosDia || []).filter(x => (x.fecha || "") === hoy &&
+    x.estado !== "adicional" && !x.adicional && x.estado !== "anulado");
   const total = peds.reduce((a,x) => a + (Number(x.total) || 0), 0);
-  const entregados = peds.filter(x => x.estado === "entregado").length;
+  // "entregado parcial" también es una entrega hecha, no una pendiente.
+  const entregados = peds.filter(x => x.estado === "entregado" || x.estado === "entregado parcial").length;
   const noEntregados = peds.filter(x => x.estado === "no entregado").length;
   const pendientes = peds.length - entregados - noEntregados;
   /* El nombre se toma del propio pedido. S.usuarios solo se carga para
