@@ -12724,11 +12724,27 @@ function hojaProducto(cod){
       "Ej: mal contado, se quebró, apareció, no se anotó una salida.");
     if (motivo == null || !motivo.trim()) return alert("Sin motivo no se guarda la corrección.");
     try {
-      await anotarMovimiento({tipo:"ajuste", cod:cod, unidades:Math.abs(dif),
-        porBulto:1, bultos:0, nota:motivo.trim(), area: dif > 0 ? "sobró" : "faltó"});
-      // el ajuste suma en positivo; si falta, se resta a mano
-      if (dif < 0) await db.collection("existencias").doc(cod)
-        .update({disponible: firebase.firestore.FieldValue.increment(-2 * Math.abs(dif))});
+      /* Antes: anotarMovimiento() siempre SUMA (un "ajuste" no tiene signo
+         propio), así que corregir hacia ABAJO necesitaba una segunda
+         escritura de -2*|dif| para terminar en el número correcto. Si esa
+         segunda escritura fallaba a medio camino, la existencia quedaba
+         MÁS lejos de la realidad que antes de corregir -con el kardex ya
+         escrito y el mensaje diciendo "no se pudo guardar". Ahora es una
+         sola escritura con el delta real, con signo: no hay paso
+         intermedio que se pueda quedar a medias. */
+      const doc = docMovimiento({tipo:"ajuste", cod:cod, unidades:Math.abs(dif),
+        porBulto:1, bultos:0, nota:motivo.trim(), area: dif > 0 ? "sobró" : "faltó"}, 0);
+      await db.collection("movimientos").add(doc);
+      const ref = db.collection("existencias").doc(cod);
+      try {
+        await ref.update({disponible: firebase.firestore.FieldValue.increment(dif),
+          actualizado: firebase.firestore.FieldValue.serverTimestamp()});
+      } catch(e2){
+        if (e2 && e2.code === "not-found"){
+          await ref.set({disponible: n, nombre: doc.nombre, unidad: doc.unidad,
+            actualizado: firebase.firestore.FieldValue.serverTimestamp()}, {merge:true});
+        } else throw e2;
+      }
       cerrarHoja();
     } catch(e){ alert("No se pudo guardar (" + (e.code || e.message) + ")."); }
   };
