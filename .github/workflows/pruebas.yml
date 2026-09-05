@@ -1,0 +1,23 @@
+# Las pruebas corren solas en cada subida.
+#
+# Si algo sale en rojo, GitHub lo marca ANTES de publicar, y
+# se ve en la lista de commits sin tener que abrir nada.
+#
+# No instala nada: las pruebas no tienen dependencias, solo Node.
+name: Pruebas
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  correr:
+    name: node pruebas/correr.js
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Correr las pruebas
+        run: node pruebas/correr.js

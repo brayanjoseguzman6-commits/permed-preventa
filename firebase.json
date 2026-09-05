@@ -1,0 +1,37 @@
+{
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      "firestore.rules",
+      "reglas-firestore.txt",
+      "CLAUDE.md",
+      "PASOS-FIRESTORE.md",
+      "pruebas/**",
+      ".github/**",
+      ".git/**",
+      ".gitignore",
+      ".gitattributes",
+      "**/.*"
+    ],
+    "headers": [
+      {
+        "//": "El service worker NO se guarda en cache: si el navegador se queda con el viejo, los telefonos no se actualizan nunca y nadie se entera.",
+        "source": "/sw.js",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+        ]
+      },
+      {
+        "//": "Lo mismo para la ficha de la empresa y la conexion: se cambian a mano y tienen que llegar de una.",
+        "source": "/@(empresa|firebase-config).js",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+        ]
+      }
+    ]
+  }
+}

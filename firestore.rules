@@ -1,0 +1,277 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function entro()      { return request.auth != null; }
+    function midoc()      { return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data; }
+    function activo()     { return entro() && midoc().activo == true; }
+    function admin()      { return activo() && midoc().rol == 'admin'; }
+    function supervisor() { return activo() && midoc().rol == 'supervisor'; }
+    function despacho()   { return activo() && midoc().rol == 'despacho'; }
+    function bodega()     { return activo() && midoc().rol == 'bodega'; }
+    /* Preventa con vista de supervision: sigue siendo preventa, pero puede
+       LEER lo del equipo. Escribir, no: eso es de administracion. */
+    function veEquipo()   { return activo() && midoc().verEquipo == true; }
+
+    /* Jornada medida con la hora del SERVIDOR.
+       El Salvador es UTC-6, por eso se restan 6 horas.
+       4:30 a.m. = 16200000 - 9:30 p.m. = 77400000
+       Para mover la jornada, cambie solo esos dos numeros.
+       El horario de VENTA lo manda Ajustes en la app (fuera de hora el
+       pedido entra como adicional); esta ventana solo cierra la noche.
+       Antes iba de 5:30 a 6:45 p.m., y una entrega cerrada a las 7:00
+       rebotaba COMPLETA (es un lote): el motorista quedaba trabado en la
+       calle sin poder cerrar, y la venta real no llegaba a facturacion. */
+    function enJornada(){
+      let local  = request.time.toMillis() - 21600000;
+      let delDia = local % 86400000;
+      return delDia >= 16200000 && delDia <= 77400000;
+    }
+    /* Reparto cierra entregas a la hora que llegue: lo que entrego, ya se
+       entrego. */
+    function puedeAhora(){ return admin() || supervisor() || despacho() || enJornada(); }
+
+    /* Un negocio dado de baja deja su clave aqui.
+       Con eso no se puede volver a abrir con otro codigo. */
+    function bloqueado(clave){
+      return exists(/databases/$(database)/documents/bloqueados/$(clave));
+    }
+
+    match /bloqueados/{clave} {
+      allow read:  if activo();
+      allow write: if admin();
+    }
+
+    match /configuracion/{doc} {
+      allow read:  if activo();
+      allow write: if admin();
+    }
+    match /listas/{id} {
+      allow read:  if activo();
+      allow write: if admin();
+    }
+    match /preciosCliente/{id} {
+      allow read:  if activo();
+      allow write: if admin();
+    }
+    match /motivos/{id} {
+      allow read:  if activo();
+      allow write: if admin();
+    }
+
+    match /usuarios/{uid} {
+      /* Quien mira al equipo necesita los nombres para poder mostrarlos.
+         Escribir sigue siendo solo de administracion. */
+      allow read:  if entro() && (request.auth.uid == uid || admin() ||
+                                  supervisor() || veEquipo());
+      allow write: if admin();
+    }
+
+    /* Los supervisores tambien arman rutas (Brayan, 03-09-2026): crean
+       sectores, les ponen dia y camion, y mueven clientes con el
+       Zonificador y con "Cubrir la ruta". */
+    match /sectores/{id} {
+      allow read:  if activo();
+      allow write: if admin() || supervisor();
+    }
+
+    match /clientes/{id} {
+      allow read:   if activo();
+      // todo cliente nuevo lleva clave, y la clave no puede estar bloqueada
+      allow create: if activo() && puedeAhora() &&
+        request.resource.data.clave is string &&
+        request.resource.data.celda is string &&
+        !bloqueado(request.resource.data.clave) &&
+        (request.resource.data.celda == '' || !bloqueado(request.resource.data.celda));
+      allow delete: if admin();
+      // del cliente ya creado, el preventista solo toca la ubicacion
+      // del cliente ya creado, el equipo solo toca la ubicacion y la foto del negocio
+      /* Se agrega 'fiscal': son los datos para facturar que el preventa
+         le pide al duenio parado en la tienda (razon social, NIT, NRC,
+         giro, direccion, correo, telefono y la foto de la tarjeta).
+         Oficina no habla con los clientes, asi que este es el unico
+         lugar donde ese dato se puede recoger de primera mano.
+         Sigue siendo una lista cerrada: nadie puede tocar el nombre,
+         el codigo ni el sector desde la calle. */
+      /* El supervisor ademas mueve al cliente de ruta, le pone su
+         preventista y su orden de visita (asignar rutas). Lo demas del
+         cliente (nombre, codigo, baja) sigue siendo de administracion. */
+      allow update: if admin() ||
+        (supervisor() &&
+          request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['lat','lng','ubicadoPor','ubicadoEn','foto','fiscal','fiscalEn',
+                      'sectorId','preventaUid','orden','dia'])) ||
+        (activo() && puedeAhora() &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['lat','lng','ubicadoPor','ubicadoEn','foto',
+                    'fiscal','fiscalEn']));
+    }
+
+    match /existencias/{cod} {
+      allow read:   if activo();
+      allow create: if admin() || bodega();
+      allow delete: if admin();
+      allow update: if activo();
+    }
+
+    /* El kardex de bodega: cada entrada, salida y correccion queda aqui,
+       firmada por quien la hizo. Nadie borra ni edita un movimiento: si
+       algo salio mal se anota otro que lo corrija, como en un libro. */
+    match /movimientos/{id} {
+      allow read:   if admin() || supervisor() || bodega() || despacho();
+      allow create: if (admin() || bodega() || despacho()) &&
+                       request.resource.data.uid == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    /* La carga del dia: bodega dice cuanto va de verdad de cada producto.
+       Todo el equipo la lee; solo bodega y oficina la escriben. */
+    match /bodegaDia/{fecha} {
+      allow read:  if activo();
+      allow write: if admin() || bodega();
+    }
+
+    /* En vivo: cada quien escribe SOLO su propio punto.
+       Todos pueden leer, pero solo oficina y supervisores lo miran. */
+    match /posiciones/{uid} {
+      allow read:  if activo();
+      allow write: if activo() && uid == request.auth.uid;
+    }
+
+    /* Cierre de jornada: cada quien firma la suya y no la puede borrar.
+       Oficina corrige si hace falta. */
+    match /jornadas/{id} {
+      allow read:   if activo();
+      allow create, update: if admin() ||
+        (activo() && request.resource.data.preventaUid == request.auth.uid);
+      allow delete: if admin();
+    }
+
+    match /visitas/{id} {
+      allow read:   if activo();
+      /* La visita va PEGADA al pedido: se guardan una tras otra. Antes
+         esta regla exigia puedeAhora() sin excepcion, y por eso, fuera
+         de jornada, el pedido entraba como adicional pero la visita
+         rebotaba. El vendedor veia "no se dejo guardar" con el pedido
+         ya guardado, lo levantaba otra vez y salia duplicado.
+         Ahora se deja crear fuera de hora si viene marcada adicional,
+         igual que el pedido al que acompana. */
+      allow create: if activo() &&
+        request.resource.data.preventaUid == request.auth.uid &&
+        (puedeAhora() || request.resource.data.adicional == true);
+      /* Corregir una visita que ya existe tambien va con el pedido
+         adicional: es el caso de "dijo que no compraba y al final si". */
+      allow update: if admin() ||
+        (activo() && resource.data.preventaUid == request.auth.uid &&
+         (puedeAhora() || request.resource.data.adicional == true));
+      allow delete: if admin() ||
+        (activo() && puedeAhora() && resource.data.preventaUid == request.auth.uid);
+    }
+    match /pedidos/{id} {
+      allow read:   if activo();
+      /* fuera de jornada solo se puede crear en estado 'adicional':
+         queda en espera y no entra al reparto hasta que oficina apruebe */
+      allow create: if activo() &&
+        request.resource.data.preventaUid == request.auth.uid &&
+        (puedeAhora() ||
+         (request.resource.data.adicional == true &&
+          request.resource.data.estado == 'adicional'));
+      // el preventista corrige el suyo mientras oficina no lo haya tomado
+      allow update, delete: if admin() ||
+        (activo() && puedeAhora()
+                  && resource.data.preventaUid == request.auth.uid
+                  && resource.data.estado == 'pendiente');
+      // el motorista registra la entrega y anota la transferencia,
+      // pero NO puede darla por confirmada: eso lo hace oficina
+      allow update: if despacho() && puedeAhora() &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'estado','lineas','totalEntregado','entregadoPor','entregadoPorNombre',
+          'entregadoEn','notaEntrega','fotoEntrega','motivoNoEntrega','pago'
+        ]) &&
+        (!('pago' in request.resource.data.diff(resource.data).affectedKeys()) ||
+          request.resource.data.pago.estado == 'reportado');
+    }
+
+    /* Cola de facturacion: la escribe la entrega, la lee oficina.
+       El servidor de facturacion entra con cuenta de servicio
+       (Admin SDK), que no pasa por estas reglas. */
+    match /porFacturar/{id} {
+      allow read:   if admin() || supervisor();
+      allow create: if (admin() || despacho()) && puedeAhora();
+      /* Lo ya facturado no se vuelve a escribir. El documento se guarda
+         con .set() completo, y ese objeto lleva estadoFactura en
+         "pendiente" y dte en nulo: si se reescribiera una entrega que
+         oficina YA facturo, le borraria el documento fiscal y la misma
+         venta se facturaria dos veces. Hoy la pantalla no deja
+         re-entregar un pedido cerrado, pero eso depende de un boton;
+         esto no. Oficina si puede corregir. */
+      allow update: if admin() ||
+        (despacho() && puedeAhora() && resource.data.estadoFactura != 'facturada');
+      allow delete: if admin();
+    }
+
+    match /entregas/{id} {
+      allow read:   if activo();
+      allow create: if (admin() || despacho()) && puedeAhora();
+      allow update, delete: if admin();
+    }
+
+    /* Cargo al preventista por error de pedido.
+       El motorista lo PROPONE; el preventista responde SOLO los suyos
+       y solo de propuesto a aceptado o rechazado; lo demas es del admin. */
+    match /cargos/{id} {
+      allow read:   if activo();
+      allow create: if (admin() || despacho()) && puedeAhora() &&
+        request.resource.data.estado == 'propuesto' &&
+        request.resource.data.deUid == request.auth.uid;
+      allow update: if admin() ||
+        (activo() && puedeAhora() &&
+         resource.data.paraUid == request.auth.uid &&
+         resource.data.estado == 'propuesto' &&
+         request.resource.data.diff(resource.data).affectedKeys()
+           .hasOnly(['estado','respuesta','respondidoEn']) &&
+         (request.resource.data.estado == 'aceptado' ||
+          request.resource.data.estado == 'rechazado'));
+      allow delete: if admin();
+    }
+
+    /* El supervisor solo mira: ve todo lo del equipo pero no escribe.
+       Lo que decide metas, foco y agenda es la administracion. */
+    match /agenda/{id} {
+      allow read:   if activo();
+      allow create: if admin() || supervisor() ||
+        (activo() && puedeAhora() && request.resource.data.preventaUid == request.auth.uid);
+      allow update, delete: if admin() || supervisor();
+    }
+    match /metas/{id} {
+      allow read:  if activo();
+      allow write: if admin();
+    }
+    match /foco/{id} {
+      allow read:  if activo();
+      allow write: if admin();
+    }
+
+    /* Cuenta del mes de cada vendedor. La calcula y publica oficina; el
+       vendedor lee SOLO la suya. Nunca lleva costos, solo resultados. */
+    match /comisiones/{id} {
+      allow read:  if admin() || supervisor() || veEquipo() ||
+        (activo() && (resource == null || resource.data.preventaUid == request.auth.uid));
+      allow write: if admin();
+    }
+
+    /* El contador de los codigos de cliente. Lo mueve cualquier cuenta
+       activa, porque el vendedor abre negocios en la calle, pero SOLO
+       hacia arriba: un numero ya entregado no se vuelve a entregar.
+       Borrarlo es cosa de administracion. */
+    match /contadores/{id} {
+      allow read:   if activo();
+      allow create: if activo();
+      allow update: if activo() && request.resource.data.alto is number
+                    && request.resource.data.alto > resource.data.alto;
+      allow delete: if admin();
+    }
+
+    match /{document=**} { allow read, write: if false; }
+  }
+}

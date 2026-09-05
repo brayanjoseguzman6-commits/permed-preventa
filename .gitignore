@@ -1,0 +1,33 @@
+# ===== Secretos: NUNCA al repo =====
+# Ni en un commit que despues se borre: el historial de GitHub lo deja ver.
+# Viven fuera del bundle (junto a la base, no adentro).
+*serviceaccount*.json
+serviceAccount*.json
+*serviceAccount*.json
+*.key
+*.pem
+.env
+.env.*
+handy.json
+preventa.json
+
+# ===== Respaldos y copias =====
+respaldos/
+*.zip
+*.bak
+*.orig
+index copy*.html
+*copia*.html
+
+# ===== Archivos sueltos de prueba =====
+_chk.js
+_c.js
+scratch*
+tmp/
+*.tmp
+
+# ===== Basura de sistema y editor =====
+Thumbs.db
+.DS_Store
+.vscode/
+.idea/
