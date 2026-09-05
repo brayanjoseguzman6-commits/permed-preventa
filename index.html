@@ -2702,6 +2702,10 @@ async function entrarAlSistema(){
     if (!d.exists) return;
     const a = d.data();
     if (a.diasEntrega != null) S.ajustes.diasEntrega = Number(a.diasEntrega);
+    // hoy solo lo usa una pantalla de administración, pero si algún día
+    // se comparte el costo con más roles, este campo tiene que venir ya
+    // sincronizado y no quedar pegado al 25% por defecto.
+    if (a.margenGeneral != null) S.ajustes.margenGeneral = Number(a.margenGeneral);
     if (a.minimoExistencia != null) S.ajustes.minimoExistencia = Number(a.minimoExistencia);
     if (Array.isArray(a.noLaborables)) S.ajustes.noLaborables = a.noLaborables.map(Number);
     if (a.horaCierre != null) S.ajustes.horaCierre = a.horaCierre;
