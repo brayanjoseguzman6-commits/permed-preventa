@@ -106,6 +106,15 @@ grupo("El puente: el kardex de bodega");
 const DEPS_KARDEX = ["correlativo", "unidadDe", "nombreProd", "docMovimiento",
   "dosDec", "EQUIVALENCIAS", "equivalencias", "movimientosDeEntrega"];
 
+prueba("la tabla de equivalencias de fábrica viene vacía, sin datos de otra empresa", () => {
+  // Se llenó una vez por error con 38 códigos de otro cliente. Hasta que
+  // PERMED cargue las suyas (Ajustes -> Avanzado), tiene que estar vacía:
+  // así cada producto baja como su propio código, como antes de esta tabla.
+  const { EQUIVALENCIAS } = cargar(["EQUIVALENCIAS"]);
+  igual(EQUIVALENCIAS.length, 0,
+    "la tabla de fábrica debe estar vacía; las equivalencias reales se cargan en Ajustes");
+});
+
 prueba("cada línea entregada saca su propio número de movimiento", () => {
   // Antes las líneas de una misma entrega salían todas con el MISMO
   // número, porque se contaban sobre la lista sin haber guardado ninguna.

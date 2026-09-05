@@ -205,8 +205,14 @@ service cloud.firestore {
          venta se facturaria dos veces. Hoy la pantalla no deja
          re-entregar un pedido cerrado, pero eso depende de un boton;
          esto no. Oficina si puede corregir. */
+      /* No solo 'facturada' esta protegida: 'armada' ya gasto un
+         correlativo (esta numerada, aunque sin sello) y 'prueba' tiene
+         sello del ambiente de pruebas -- las dos son avance real que un
+         reparto no puede devolver a pendiente. Solo pendiente/revisar
+         se pueden reescribir desde el telefono. */
       allow update: if admin() ||
-        (despacho() && puedeAhora() && resource.data.estadoFactura != 'facturada');
+        (despacho() && puedeAhora() &&
+          !(resource.data.estadoFactura in ['armada', 'prueba', 'facturada']));
       allow delete: if admin();
     }
 

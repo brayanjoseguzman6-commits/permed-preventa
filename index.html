@@ -5736,23 +5736,11 @@ async function crearCuenta(correo, clave){
    Los productos SIN costo real (sin costo, o costo "provisional") no
    entran al cruce: salen aparte, para que se sepa que faltan. */
 
-/* Equivalencias base -> presentacion. Fuente: oficina (Liquidacion), hoja
-   "Presentaciones" del 3-sep-2026, 39 filas. Si algun dia oficina las
-   manda a Firestore (ajustes.presentaciones), esas mandan. */
-const EQUIVALENCIAS = [
-  ["300006","W300010",5],["300006","W300011",10],["300006","W300012",15],["300006","W300014",25],["300006","W300027",40],
-  ["300007","W300002",5],["300007","W300003",10],["300007","W300005",20],
-  ["A200013","A200013MC",0.5],["A200016","A200016C",4],["A200080","A200080C",5],
-  ["B200052","B200076",6],["B200053","B200077",6],["B200054","B200062",6],["B200055","B200063",6],
-  ["B200056","B200064",6],["B200057","B200065",6],["B200058","B600066",6],["B200059","B600067",6],
-  ["B200060","B600068",6],["B200061","B600069",6],["B200078","B200079",6],["B200080","B200081",6],
-  ["B200082","B200083",6],["B300002","A300002",1],["G800046","G800046C",12],
-  ["G910001","G910003",4],["G910002","G910004",4],
-  ["Q900005","Q900014",4],["Q900005","Q900015",11],["Q900005","Q900016",23],
-  ["S400001","S400001P5",5],["S400002","S400002P5",5],
-  ["S400017","S400017FD",20],["S400018","S400018FD",20],["S400019","S400019FD",5],
-  ["W600008","W600001",0.4],["W900010","W900011",0.5],["W900010","W900012",0.25]
-];
+/* Equivalencias base -> presentacion. Se cargan en Ajustes -> Avanzado
+   (ajustes.presentaciones). Vacia hasta que PERMED cargue las suyas:
+   cada producto baja como su propio codigo, igual que antes de que
+   existiera esta tabla -- nunca con datos de otra empresa. */
+const EQUIVALENCIAS = [];
 function equivalencias(){
   const e = S.ajustes && Array.isArray(S.ajustes.presentaciones) && S.ajustes.presentaciones.length
     ? S.ajustes.presentaciones : EQUIVALENCIAS;
