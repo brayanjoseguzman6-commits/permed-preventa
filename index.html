@@ -21,10 +21,26 @@
    comentario de aqui adentro, porque parte el bloque en dos.) */
 function marcaSinLogo(img){
   if (!img || !img.parentNode) return;
+  var caja = img.parentNode;
   var t = document.createElement("b");
   t.className = "marca-txt";
   t.textContent = (window.EMPRESA && (window.EMPRESA.nombre || window.EMPRESA.nombreLargo)) || "";
-  img.parentNode.replaceChild(t, img);
+  caja.replaceChild(t, img);
+  /* 🪤 Dos respaldos distintos caen en el MISMO texto. Aca, sin `logo.png`,
+     se acaba de escribir el nombre de la empresa; y el rotulo de al lado
+     --el nombre del PROGRAMA-- tambien usa el de la empresa cuando nadie le
+     puso uno propio (`empApp()`). Juntos, la primera pantalla que ve un
+     vendedor decia el nombre dos veces seguidas.
+     Se quita el de al lado y no este: el de al lado es el que no esta
+     diciendo nada que no se lea ya. Con nombre propio de programa (o en las
+     cajas donde al lado dice "Mi dia" o "En vivo", que no tienen logo que
+     perder y por eso no pasan por aqui) no se toca nada. */
+  if (!(window.EMPRESA && window.EMPRESA.app) && caja.querySelector){
+    var rotulo = caja.querySelector(".marca-app");
+    var sobra = rotulo && rotulo.parentNode &&
+      rotulo.parentNode.className === "marca-sub" ? rotulo.parentNode : rotulo;
+    if (sobra && sobra.parentNode) sobra.parentNode.removeChild(sobra);
+  }
 }
 /* 🪤 La segunda red, y hace falta. `onerror` NO dispara cuando el servidor
    contesta 200 con otra cosa --por ejemplo la pagina entera, que es lo que
@@ -4942,6 +4958,35 @@ function pintarAdmin(){
      soltarlo: si no, la clase del body deja la app entera sin barra de
      abajo y sin poder desplazarse. */
   if (pestanaActual !== "zonificar") document.body.classList.remove("zo-lleno");
+  /* La contrasena de la cuenta recien creada se suelta AQUI, y la condicion
+     es exactamente la de «esta pintada NO va a dibujar Cuentas».
+
+     🪤 Se intento dos veces enumerando por donde se SALE, y las dos veces
+     quedo una puerta abierta: primero solo el clic de la tira de pestanas
+     --y a Cuentas tambien se llega por `irAPestana(...)`--, despues solo
+     `pestanaActual` --e irse a la portada de Administrar no cambia
+     `pestanaActual`, cambia `grupoActual`, que es la salida de todos los
+     dias del administrador y la que usan «Volver» y el ATRAS del telefono--.
+     Enumerar salidas es la forma equivocada de plantearlo.
+
+     Por eso esta al reves: `adminUsuarios()` es lo UNICO que dibuja la
+     contrasena, y solo se llega ahi por `pintarGrupo()`. Negar sus
+     condiciones cubre toda salida presente y futura, sin acordarse de
+     ninguna.
+
+     La tercera condicion --que el grupo abierto de verdad TENGA la pestana
+     de cuentas-- tapa un hueco que hoy no se puede empujar desde ningun
+     boton, pero que esta en el codigo: `pintarGrupo()` reparte mirando solo
+     `pestanaActual`, sin comprobar que esa pestana sea del grupo abierto.
+     Cambiar de grupo dejando `pestanaActual` en `usuarios` --lo que hace
+     `irAPestana(grupo)` sin segundo argumento-- volvia a dibujar la
+     contrasena bajo el titulo de otro grupo. Se tapa aca y no en el
+     repartidor porque tocar el repartidor cambiaria el comportamiento de
+     las otras veinte pestanas, y esto es lo unico que guarda un secreto. */
+  const grupoAbierto = grupoActual
+    ? gruposVisibles().find(x => x.id === grupoActual) : null;
+  if (!grupoAbierto || pestanaActual !== "usuarios" ||
+      !grupoAbierto.tabs.some(t => t[0] === "usuarios")) cuentaReciencreada = null;
   const m = $("#admin-cuerpo");
   const cab = $("#pant-admin .marca b");
   pintarLado(); pintarCabAdmin();
@@ -4951,7 +4996,7 @@ function pintarAdmin(){
     ajustarPestanas();
     return adminMenu(m);
   }
-  const g = gruposVisibles().find(x => x.id === grupoActual);
+  const g = grupoAbierto;
   if (!g){ grupoActual = null; return pintarAdmin(); }
   if (cab) cab.textContent = g.nombre;
   ajustarPestanas();
@@ -5502,6 +5547,35 @@ function imprimirCuentas(){
   window.print();
 }
 
+/* La cuenta que se acaba de crear, mientras siga a la vista.
+
+   🪤 Vive AFUERA de la funcion que pinta, y no es capricho. Al guardar el
+   usuario nuevo salta el `onSnapshot` de `usuarios`, que llama a
+   `refrescarAdmin` -> `pintarAdmin()` y REHACE el panel entero. El recuadro
+   con la contrasena se llenaba DESPUES de guardar, sobre el nodo viejo:
+   para entonces ese nodo ya estaba desconectado, asi que no se veia nada,
+   `$("#u-copiar")` salia nulo y reventaba con «Cannot set properties of
+   null». La cuenta SI quedaba creada, pero la persona veia que no pasaba
+   nada --con el riesgo de darle otra vez-- y sobre todo **se perdia la
+   contrasena, que no se vuelve a mostrar**.
+   Guardandola aca, el repintado la vuelve a dibujar en vez de borrarla. */
+let cuentaReciencreada = null;
+
+/* El recuadro de «Cuenta lista», armado aparte para poder probarlo: es lo
+   unico de esta pantalla que, si sale mal, deja a alguien sin poder entrar. */
+function cajaCuentaLista(c){
+  if (!c) return "";
+  return '<div class="eyebrow">Cuenta lista &middot; ' + escapar(c.nombre || "") +
+      ' &middot; ' + escapar(c.rolRotulo || "") + '</div>' +
+    '<p style="font-size:14px;margin:8px 0 0">P&aacute;sele estos dos datos. La contrase&ntilde;a no se vuelve ' +
+      'a mostrar, as&iacute; que c&oacute;piela ahora.</p>' +
+    '<p class="num" style="font-size:17px;font-weight:800;margin:12px 0 0;word-break:break-all">' +
+      escapar(c.correo || "") + '</p>' +
+    '<p class="num" style="font-size:26px;font-weight:800;margin:4px 0 0;letter-spacing:1px">' +
+      escapar(c.clave || "") + '</p>' +
+    '<button class="btn linea" id="u-copiar" style="margin-top:12px">Copiar los dos datos</button>';
+}
+
 function adminUsuarios(m){
   const ROLES = [
     ["preventa","Preventa"],
@@ -5526,7 +5600,8 @@ function adminUsuarios(m){
     '<button class="btn linea" id="u-otra">Generar otra</button>' +
     '<button class="btn" id="u-add" style="margin-top:14px">Crear la cuenta</button>' +
     '<div id="u-aviso" class="aviso oculto"></div>' +
-    '<div id="u-clave" class="oculto"></div>' +
+    '<div id="u-clave" class="' + (cuentaReciencreada ? "pasos" : "oculto") + '">' +
+      cajaCuentaLista(cuentaReciencreada) + '</div>' +
     '</div>' +
 
     '<div class="pasos"><div class="eyebrow">Cuando alguien se va</div>' +
@@ -5768,24 +5843,43 @@ function adminUsuarios(m){
     $("#u-nom").value = ""; $("#u-correo").value = ""; $("#u-rol").value = "";
     $("#u-clave-txt").value = claveNueva();
     av.classList.add("oculto");
-    caja.classList.remove("oculto");
-    caja.className = "pasos";
-    caja.innerHTML =
-      '<div class="eyebrow">Cuenta lista &middot; ' + escapar(nom) + ' &middot; ' +
-        escapar((ROLES.find(r => r[0] === rol) || ["",""])[1]) + '</div>' +
-      '<p style="font-size:14px;margin:8px 0 0">P&aacute;sele estos dos datos. La contrase&ntilde;a no se vuelve ' +
-        'a mostrar, as&iacute; que c&oacute;piela ahora.</p>' +
-      '<p class="num" style="font-size:17px;font-weight:800;margin:12px 0 0;word-break:break-all">' +
-        escapar(correo) + '</p>' +
-      '<p class="num" style="font-size:26px;font-weight:800;margin:4px 0 0;letter-spacing:1px">' +
-        escapar(clave) + '</p>' +
-      '<button class="btn linea" id="u-copiar" style="margin-top:12px">Copiar los dos datos</button>';
-    $("#u-copiar").onclick = () => {
-      const t = "Su cuenta de " + empApp() + "\nCorreo: " + correo + "\nContraseña: " + clave;
-      navigator.clipboard.writeText(t)
-        .then(() => { $("#u-copiar").textContent = "Copiado"; })
-        .catch(() => { $("#u-copiar").textContent = "No se pudo copiar"; });
+    /* Se ANOTA la cuenta y se manda a pintar, en vez de escribir el recuadro
+       aqui mismo. Guardar el usuario dispara el `onSnapshot` que rehace el
+       panel entero: lo que se escribiera aqui se perderia --y con ello la
+       contrasena, que no se vuelve a mostrar--. Pintando desde el estado,
+       cada repintado la vuelve a dibujar. */
+    cuentaReciencreada = {
+      nombre: nom, correo: correo, clave: clave,
+      rolRotulo: (ROLES.find(r => r[0] === rol) || ["",""])[1]
     };
+    pintarAdmin();
+  };
+  cablearCuentaLista();
+}
+
+/* El boton de copiar se cablea en CADA pintada, no una sola vez al crear la
+   cuenta: el panel se rehace solo cada vez que cambia algo en `usuarios`, y
+   un cableado de una sola vez se pierde en el primer repintado. */
+function cablearCuentaLista(){
+  const b = $("#u-copiar");
+  if (!b || !cuentaReciencreada) return;
+  const c = cuentaReciencreada;
+  /* En un telefono el recuadro nace DEBAJO del pliegue: la pantalla no se
+     mueve al crear la cuenta y hay que bajar para ver la contrasena, que es
+     justo el dato que no se vuelve a mostrar. Se sube una sola vez, no en
+     cada repintado, o el panel daria brincos mientras alguien lee. */
+  if (!c.mostrada){
+    c.mostrada = true;
+    const caja = $("#u-clave");
+    if (caja && caja.scrollIntoView){
+      try { caja.scrollIntoView({block: "nearest"}); } catch(e){}
+    }
+  }
+  b.onclick = () => {
+    const t = "Su cuenta de " + empApp() + "\nCorreo: " + c.correo + "\nContraseña: " + c.clave;
+    navigator.clipboard.writeText(t)
+      .then(() => { b.textContent = "Copiado"; })
+      .catch(() => { b.textContent = "No se pudo copiar"; });
   };
 }
 
@@ -5852,7 +5946,7 @@ async function crearCuenta(correo, clave){
    entran al cruce: salen aparte, para que se sepa que faltan. */
 
 /* Equivalencias base -> presentacion. Se cargan en Ajustes -> Avanzado
-   (ajustes.presentaciones). Vacia hasta que PERMED cargue las suyas:
+   (ajustes.presentaciones). Vacia hasta que cada empresa cargue las suyas:
    cada producto baja como su propio codigo, igual que antes de que
    existiera esta tabla -- nunca con datos de otra empresa. */
 const EQUIVALENCIAS = [];
@@ -8923,8 +9017,8 @@ function hojaCifra(clave, lista){
 
    AQUI NO SE GENERA NINGUN DTE. Generar un DTE es firmarlo con el
    certificado de la DGII y transmitirlo a Hacienda: eso es del sistema
-   de oficina. Lo que hace D'Preventa es RECOGER el dato limpio y
-   dejarlo listo. Si un DTE sale mal, el cliente pierde el derecho a
+   de oficina. Lo que hace esta aplicacion es RECOGER el dato limpio y dejarlo
+   listo. Si un DTE sale mal, el cliente pierde el derecho a
    deducir ese IVA, y ese riesgo no se toca desde la calle.
 
    Los campos son los siete que pidio oficina y que son el minimo de
@@ -10503,8 +10597,7 @@ function bajarCSV(pedidos){
 }
 
 /* ===== Respaldo completo del sistema =====
-   Brayan, 4 sep 2026: si algun dia toca dejar D'Preventa o cambiar de
-   sistema, hoy los datos se quedan atrapados adentro. Este boton baja
+   Brayan, 4 sep 2026: si algun dia toca dejar esta aplicacion o cambiar de sistema, hoy los datos se quedan atrapados adentro. Este boton baja
    TODO en un solo archivo: cada coleccion de Firestore, tal cual esta.
    Lee la base completa -no hay forma de evitarlo, es un respaldo- asi
    que solo se usa cuando de verdad hace falta, nunca de rutina.
@@ -11057,8 +11150,8 @@ function empNombre(){ return laEmpresa().nombre || "La empresa"; }
 function empLargo(){ return laEmpresa().nombreLargo || empNombre(); }
 function empLema(){ return laEmpresa().lema || ""; }
 /* El nombre del PROGRAMA, que no es el de la empresa. Si nadie le puso
-   uno, se usa el de la empresa: mejor que diga "PERMED" a que ande con
-   el nombre del producto de otra. */
+   uno, se usa el de la empresa: mejor que diga el nombre de la empresa a que ande con el del producto
+   de otra. */
 function empApp(){ return laEmpresa().app || empNombre(); }
 function esVenta(p){ return p && p.estado !== "rechazado"; }
 function quincenaDe(fecha){ return Number(fecha.slice(8,10)) <= 15 ? 1 : 2; }
@@ -11834,6 +11927,25 @@ function clientesDelDia(){
 /* Arranca en la linea del tiempo: es la pantalla que el motorista tiene
    en la cabeza de Handy. */
 let vistaReparto = "linea";
+
+/* Deja a la vista la pestana que esta puesta.
+
+   🪤 La tira de pestanas de reparto se desplaza de lado, y en un telefono
+   CAMION --la cuarta-- queda fuera de pantalla: solo se le asoma la «C».
+   Eso importa porque la app MANDA sola para alla: cuando el motorista
+   quiere cerrar su primera entrega sin el marcador de salida anotado, se
+   le cambia de pantalla a CAMION. Aterrizaba en una pantalla nueva sin
+   poder ver en que pestana estaba, que es la peor forma de llegar.
+
+   `block:"nearest"` a proposito: sin eso el navegador tambien mueve la
+   pagina hacia arriba o abajo, y lo unico que hay que corregir es el
+   desplazamiento de LADO de la tira. */
+function pestanaRepartoALaVista(){
+  const puesta = $$("#dia-cuerpo .lt-tabs button")
+    .filter(b => b.dataset.v === vistaReparto)[0];
+  if (!puesta || !puesta.scrollIntoView) return;
+  try { puesta.scrollIntoView({block: "nearest", inline: "center"}); } catch(e){}
+}
 /* Los filtros de la tira de iconos, en el orden de Handy. */
 const FILTROS_LT = [
   ["todo",  "\u2637", "Todo el d\u00eda"],
@@ -11938,6 +12050,9 @@ function cablearLinea(){
 }
 
 function pintarDiaReparto(){
+  /* Mismo trato que `cuentaReciencreada`: se suelta en el pintor, que es por
+     donde pasan todos los caminos, y no en el clic de una sola tira. */
+  if (vistaReparto !== "camion") avisoCamion = null;
   const m = $("#dia-cuerpo");
   const cab = $("#pant-dia .marca b");
   if (cab) cab.textContent = esHoy() ? "Reparto de hoy" : "Reparto · " + fechaBonita(fechaVista());
@@ -11960,9 +12075,12 @@ function pintarDiaReparto(){
           '<button data-f="' + x[0] + '" title="' + x[2] + '" aria-pressed="' +
           (filtroLT === x[0]) + '">' + x[1] + '</button>').join("") + '</div>'
       : '');
-  const cablearPest = () => $$("#dia-cuerpo .lt-tabs button").forEach(b => b.onclick = () => {
-    vistaReparto = b.dataset.v; pintarDiaReparto();
-  });
+  const cablearPest = () => {
+    $$("#dia-cuerpo .lt-tabs button").forEach(b => b.onclick = () => {
+      vistaReparto = b.dataset.v; pintarDiaReparto();
+    });
+    pestanaRepartoALaVista();
+  };
 
   if (vistaReparto === "linea"){
     m.innerHTML = pestanas + lineaDelTiempo(mios, hechos, entregado);
@@ -12032,6 +12150,7 @@ function pintarDiaReparto(){
   $$("#dia-cuerpo .lt-tabs button").forEach(b => b.onclick = () => {
     vistaReparto = b.dataset.v; pintarDiaReparto();
   });
+  pestanaRepartoALaVista();
   cablearRecibirCarga();
   if ($("#h-carga")) $("#h-carga").onclick = () => hojaCarga(mios, S.nombre, fechaVista());
   if ($("#h-entregas")) $("#h-entregas").onclick = () => hojaEntregas(mios, S.nombre, fechaVista());
@@ -12261,6 +12380,18 @@ function hojaDiferenciasCarga(){
   };
 }
 
+/* El «Kilometraje guardado» del camion, guardado APARTE de la pantalla.
+
+   🪤 Mismo defecto que tenia el alta de cuentas, y por la misma razon:
+   guardar el kilometraje escribe en `jornadas`, eso dispara el
+   `onSnapshot` de la jornada del dia, y el repintado se lleva el aviso que
+   se acababa de escribir. El dato quedaba bien guardado y la pantalla se
+   veia igual que antes de tocar el boton: el motorista no tiene forma de
+   saber si le hizo caso. Guardandolo aca, el repintado lo vuelve a
+   dibujar. Se suelta al cambiar de pestana, no al pintar: soltarlo al
+   pintar lo borraria en el primer repintado, que es justo el defecto. */
+let avisoCamion = null;
+
 function pintarCamion(m){
   const c = datosCamion();
   const recorrido = (c.kmSalida != null && c.kmRegreso != null)
@@ -12289,7 +12420,8 @@ function pintarCamion(m){
         '<b class="num" id="cm-rec" style="font-size:25px">' +
           (recorrido != null ? recorrido + " km" : "—") + '</b></div>' +
       '<button class="btn" id="cm-guardar" style="margin-top:12px">Guardar el kilometraje</button>' +
-      '<div id="cm-av" class="aviso oculto"></div></div>' +
+      '<div id="cm-av" class="' + (avisoCamion ? "aviso bien" : "aviso oculto") + '">' +
+        (avisoCamion ? escapar(avisoCamion) : "") + '</div></div>' +
 
     '<div class="pasos"><div class="eyebrow">Gastos del día</div>' +
       '<p style="font-size:14px;margin:8px 0 0">Lo que gastó en la calle. Queda con su nombre ' +
@@ -12344,7 +12476,9 @@ function pintarCamion(m){
       kmSalida: na, kmRegreso: nb,
       kmRecorrido: (na != null && nb != null) ? nb - na : null
     }, $("#cm-guardar"));
-    if (ok){ av.className = "aviso bien"; av.innerHTML = "Kilometraje guardado."; }
+    /* Se ANOTA y se manda a pintar: escribirlo aca lo borraria el
+       repintado que dispara el propio guardado (ver `avisoCamion`). */
+    if (ok){ avisoCamion = "Kilometraje guardado."; pintarDiaReparto(); }
   };
 
   $("#cm-add").onclick = async () => {
