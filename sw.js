@@ -1,6 +1,6 @@
 /* Service worker: guarda la app en el teléfono para que abra sin señal.
    Al publicar una versión nueva, cambie el número de CACHE. */
-const CACHE = "preventa-v4";
+const CACHE = "preventa-v7";
 const BASICOS = [
   "./", "./index.html", "./manifest.json", "./firebase-config.js", "./empresa.js",
   "./qrcode.js", "./leaflet.js", "./leaflet.css",

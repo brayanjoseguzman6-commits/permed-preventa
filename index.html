@@ -1870,9 +1870,41 @@ html[data-estilo="noche"] .tb-acc .a4{background:#16233D;color:#5A9BFF}
 <body>
 
 <div id="arranque">
-  <div class="palabra">D<i>&#39;</i>Preventa</div>
+  <div class="palabra" id="arranque-palabra"></div>
   <div class="cargando"></div>
 </div>
+<script>
+/* La palabra del arranque sale de empresa.js, que ya se cargo arriba.
+   ANTES estaba escrita a mano en este mismo HTML, y por eso la app de
+   una empresa arrancaba diciendo el nombre del programa de OTRA --se vio
+   en el telefono, en la pantalla que aparece antes de la de entrar--.
+   La prueba que prohibe nombres dentro del codigo no lo agarro porque
+   la palabra venia partida en pedazos por una etiqueta.
+
+   Va aqui pegado al div, y no abajo con el resto del programa, para que
+   se pinte en el primer cuadro: si esperara, la pantalla de arranque se
+   veria un instante en blanco. */
+(function(){
+  var E = window.EMPRESA || {};
+  var t = E.app || E.nombre || E.nombreLargo || "Preventa";
+  var el = document.getElementById("arranque-palabra");
+  if (!el) return;
+  /* El apostrofo va aparte para pintarlo del color de la senal, que es
+     como se dibuja la marca cuando el nombre lo lleva. Sin apostrofo se
+     escribe tal cual. */
+  var i = t.indexOf("'");
+  if (i < 0) i = t.indexOf("\u2019");
+  if (i > 0 && i < t.length - 1){
+    el.appendChild(document.createTextNode(t.slice(0, i)));
+    var x = document.createElement("i");
+    x.textContent = t.charAt(i);
+    el.appendChild(x);
+    el.appendChild(document.createTextNode(t.slice(i + 1)));
+  } else {
+    el.textContent = t;
+  }
+})();
+</script>
 
 <!-- ============ CONFIGURACIÓN PENDIENTE ============ -->
 <section id="pant-config" class="pantalla centro oculto">
@@ -1909,7 +1941,7 @@ html[data-estilo="noche"] .tb-acc .a4{background:#16233D;color:#5A9BFF}
 <section id="pant-app" class="pantalla oculto">
   <header>
     <div class="fila-top">
-      <div class="marca" id="marca-app"><img src="logo-oscuro.png" alt="" onerror="marcaSinLogo(this)" onload="marcaRevisa(this)"><span class="marca-sub"><b>D<i>'</i>Preventa</b></span></div>
+      <div class="marca" id="marca-app"><img src="logo-oscuro.png" alt="" onerror="marcaSinLogo(this)" onload="marcaRevisa(this)"><span class="marca-sub"><b class="marca-app"></b></span></div>
       <div style="display:flex;gap:7px;align-items:center">
         <button id="btn-admin" class="cat oculto">Administrar</button>
         <button class="chip-usuario" id="chip-usuario">…</button>
@@ -1933,7 +1965,7 @@ html[data-estilo="noche"] .tb-acc .a4{background:#16233D;color:#5A9BFF}
 <section id="pant-ruta" class="pantalla oculto">
   <header>
     <div class="fila-top">
-      <div class="marca"><img src="logo-oscuro.png" alt="" onerror="marcaSinLogo(this)" onload="marcaRevisa(this)"><span class="marca-sub"><b>D<i>'</i>Preventa</b></span></div>
+      <div class="marca"><img src="logo-oscuro.png" alt="" onerror="marcaSinLogo(this)" onload="marcaRevisa(this)"><span class="marca-sub"><b class="marca-app"></b></span></div>
       <div style="display:flex;gap:7px;align-items:center">
         <button id="btn-admin2" class="cat oculto">Administrar</button>
         <button class="chip-usuario" id="chip-usuario2">…</button>
@@ -4059,7 +4091,16 @@ const GRUPOS = [
          ["portafolio","Portafolio"]]},
   {id:"equipo", nombre:"Equipo",
    pie:"Las cuentas de la gente, sus metas, sus comisiones y el d\u00eda de cada uno.",
-   tabs:[["usuarios","Cuentas"],["metas","Metas"],["foco","Comisiones"],["ficha","Ficha por persona"],
+   /* Tres pestanas para tres cosas distintas (Abner, 05-09-2026). Antes,
+      `foco` se rotulaba "Comisiones" y traia las dos cosas adentro: se abria
+      en la tabla de foco, y las comisiones iban al fondo de esa misma
+      pantalla y SOLO para administracion -- o sea que un supervisor entraba
+      a algo que decia "Comisiones" y no veia ni una. Metas es cuanto hay que
+      vender en dinero; el foco es que productos se empujan, en unidades --y
+      se rotula «Metas por producto», que es como le dice la gente--; y
+      comisiones es como se paga. */
+   tabs:[["usuarios","Cuentas"],["metas","Metas del mes"],["foco","Metas por producto"],
+         ["comisiones","Comisiones"],["ficha","Ficha por persona"],
          ["supervisores","Supervisores"]]},
   {id:"ajustes", nombre:"Ajustes",
    pie:"Horas de trabajo, d\u00edas de entrega y datos de la empresa. Casi nunca se toca.",
@@ -4080,8 +4121,9 @@ const GUIA = {
   costos:   "Lo que le cuesta a la empresa cada producto. De aqu\u00ed sale hasta d\u00f3nde se puede rebajar.",
   precios:  "Precios especiales para ciertos clientes, cuando alguno lleva un trato aparte.",
   usuarios: "Las cuentas del equipo. Aqu\u00ed se da de alta, se cambia el puesto o se da de baja.",
-  metas:    "Cu\u00e1nto tiene que vender cada preventa en el mes.",
-  foco:     "Los productos que se quieren empujar y lo que gana cada quien por venderlos.",
+  metas:    "Cu\u00e1nto tiene que vender cada preventa este mes, en dinero, y c\u00f3mo va.",
+  foco:     "La meta de cada producto para este mes, en unidades, y la cuota de cada vendedor.",
+  comisiones: "C\u00f3mo se paga: porcentaje, grupos y bonos. Y la cuenta del mes de cada vendedor.",
   ficha:    "El d\u00eda de una persona en una sola pantalla: visitas, ventas y por d\u00f3nde anduvo.",
   supervisores: "Con qui\u00e9n anduvo cada supervisor y cu\u00e1nto rato: su recorrido cruzado con el de cada preventista. Solo oficina.",
   tablero:  "El resumen del d\u00eda y del mes, y qui\u00e9n anda en la calle ahorita.",
@@ -4250,7 +4292,7 @@ const TB_ICO = {
 function tbIco(n){ return '<svg viewBox="0 0 24 24" aria-hidden="true">' + (TB_ICO[n] || "") + '</svg>'; }
 const TB_ICO_TAB = {tablero:"cal", vivo:"map", pedidos:"ped", reparto:"cam", existencias:"bod", clientes:"cli", zonificar:"map",
   sectores:"rut", repetidos:"rep", productos:"pro", cargarCat:"sub", costos:"cos", precios:"lis", portafolio:"por",
-  usuarios:"cue", metas:"met", foco:"com", ficha:"fic", supervisores:"gen", ajustes:"aju", ayuda:"ayu"};
+  usuarios:"cue", metas:"met", foco:"ojo", comisiones:"com", ficha:"fic", supervisores:"gen", ajustes:"aju", ayuda:"ayu"};
 
 /* ---- el menu lateral: los mismos grupos y pestanas, en columna ---- */
 let tbVersionTxt = "";
@@ -5037,6 +5079,7 @@ function pintarGrupo(m){
   if (pestanaActual === "tablero") return adminTablero(m);
   if (pestanaActual === "ficha") return adminFicha(m);
   if (pestanaActual === "foco") return adminFoco(m);
+  if (pestanaActual === "comisiones") return adminComisiones(m);
   return adminAjustes(m);
 }
 
@@ -5521,6 +5564,27 @@ function leerFilas(filas){
   });
   return mapa;
 }
+/* El conteo de bodega, leido de un Excel: codigo en la primera celda y la
+   cantidad en la siguiente. A diferencia de `leerFilas` --que es para
+   costos y por eso descarta el cero--, aca el CERO es un dato: significa
+   "no hay", y es de las cosas mas importantes que puede decir un conteo. */
+function leerConteo(filas){
+  const mapa = {};
+  (filas || []).forEach(f => {
+    if (!f) return;
+    const celdas = f.map(x => (x == null ? "" : String(x).trim())).filter(x => x !== "");
+    if (celdas.length < 2) return;
+    const cod = celdas[0];
+    const num = celdas.slice(1)
+      .map(x => String(x).replace(/[$\s,]/g, ""))
+      .filter(x => /^-?\d+(\.\d+)?$/.test(x))
+      .map(Number)[0];
+    if (num == null || isNaN(num) || num < 0) return;
+    mapa[cod.toUpperCase()] = num;
+  });
+  return mapa;
+}
+
 function cargarSheetJS(){
   if (window.XLSX) return Promise.resolve();
   return new Promise((ok, mal) => {
@@ -6229,7 +6293,7 @@ function adminAjustes(m){
        vuelve de solo mirar: no se borra nada y se puede revertir. */
     '<div class="eyebrow" style="margin-top:20px">Qu&eacute; lleva oficina</div>' +
     '<p style="font-size:14px;margin:8px 0 0">Enci&eacute;ndalas <b>solo cuando el sistema de ' +
-    'oficina ya est&eacute; mandando ese dato</b>. Mientras est&eacute;n apagadas, D&#39;Preventa lo ' +
+    'oficina ya est&eacute; mandando ese dato</b>. Mientras est&eacute;n apagadas, ' + escapar(empApp()) + ' lo ' +
     'sigue llevando como siempre. Se pueden volver a apagar cuando quiera.</p>' +
     (function(){
       const o = S.ajustes.oficinaLleva || {};
@@ -6246,7 +6310,7 @@ function adminAjustes(m){
           "llegar desde oficina y aqu\u00ed solo se mira. La carga del d\u00eda se queda.") +
         fila("costos", "Los costos y precios",
           "El cat\u00e1logo deja de editarse aqu\u00ed: los precios y los costos los escribe oficina.") +
-        fila("comisiones", "Metas y comisiones",
+        fila("comisiones", "Metas, foco y comisiones",
           "El c\u00e1lculo pasa a oficina. Aqu\u00ed se sigue mostrando el avance del vendedor.");
     })() +
     '<div class="eyebrow" style="margin-top:20px">PIN para ver costos</div>' +
@@ -6801,7 +6865,7 @@ function escucharPedidos(){
   cortes.push(db.collection("configuracion").doc("comisiones").onSnapshot(d => {
     S.comis = d.exists ? d.data() : null;
     if (S.pagina === "dia") pintarDia();
-    refrescarAdmin(["foco","tablero"]);
+    refrescarAdmin(["comisiones","tablero"]);
   }, ()=>{}));
   cortes.push(db.collection("motivos").onSnapshot(q => {
     S.motivos = q.docs.map(d => Object.assign({id:d.id}, d.data()));
@@ -6965,6 +7029,15 @@ function escucharDia(){
 function selloExist(cod){
   const d = S.exist[cod];
   if (d == null) return "";
+  /* Una ficha SIN CONTAR vale lo que dijo el arranque, no lo que hay en
+     bodega: nadie la ha contado. Cuando una de esas llega a cero --y llegan
+     solas, restando entregas de un numero de partida que nunca fue real--,
+     decir "agotado" es gritar en falso. Y si grita en falso en cientos de
+     productos, a la semana nadie le hace caso a la alarma de verdad. El
+     numero se sigue enseniando mientras sea positivo; el aviso espera al
+     conteo. La misma regla que ya seguia `existAvisable()`. */
+  const f = (S.existDoc || {})[cod];
+  if (f && f.contado === false) return d > 0 ? '<span class="poco">quedan ' + d + '</span>' : "";
   if (d <= 0) return '<span class="poco">agotado</span>';
   return '<span class="poco">quedan ' + d + '</span>';
 }
@@ -7014,9 +7087,22 @@ function sectorDeHoy(){
   const hoy = new Date(a, me-1, d).getDay(), m = misSectores();
   const s1 = m.find(x => tieneDia(x) && Number(x.dia) === hoy);
   if (s1) return s1.id;
-  /* Otro dia sin ruta: no se inventa una. Solo HOY cae al primer sector,
-     para que el que no tiene dias puestos no amanezca en blanco. */
+  /* Ningun sector cae en este dia.
+
+     🔴 Aqui, HOY caia SIEMPRE al primer sector de la lista, y eso invento
+     rutas: medido el 05-09-2026, ninguna de las 41 rutas tiene sabado ni
+     domingo, asi que el sabado la app abria la PRIMERA ruta y la rotulaba
+     con la fecha de hoy. El vendedor leia "Sabado 5 de septiembre ·
+     Lolotique · Programadas 9" para una calle que no le toca. Peor: esa
+     misma ruta llamada "Lolotique" tiene adentro clientes que en Handy son
+     de "Ruta Estanzuelas", asi que ni el nombre era cierto.
+
+     El respaldo se queda SOLO para el caso que lo justificaba: que NADIE
+     tenga dias puestos todavia, para que el que apenas esta configurando
+     no amanezca en blanco. Si las rutas si tienen dias y ninguna es la de
+     hoy, la respuesta honesta es que hoy no toca ninguna. */
   if (!esHoy()) return "";
+  if (m.some(tieneDia)) return "";
   return m.length ? m[0].id : "";
 }
 function pintarSectores(){
@@ -7067,8 +7153,12 @@ function clientesDeReparto(){
 function clientesDelSector(){
   if (S.rol === "despacho") return clientesDeReparto();
   if (hayAgenda()){
+    /* 🪤 Sin ruta abierta no hay a quien visitar. Antes, con el sector en
+       blanco, el filtro de abajo dejaba pasar la agenda ENTERA: el dia que
+       no toca ninguna ruta salian los clientes de todas juntos. */
+    if (!S.sectorSel) return [];
     const mios = S.agenda.filter(a => S.rol === "admin" || !a.preventaUid || a.preventaUid === S.usuario.uid);
-    const ids = mios.filter(a => !S.sectorSel || a.sectorId === S.sectorSel).map(a => a.clienteId);
+    const ids = mios.filter(a => a.sectorId === S.sectorSel).map(a => a.clienteId);
     return S.clientes.filter(c => c.activo !== false && ids.indexOf(c.id) >= 0 && esMio(c))
       .sort((a,b) => (Number(a.orden)||999) - (Number(b.orden)||999));
   }
@@ -7810,7 +7900,8 @@ function pintarMapaLleno(lista, visitados, conPedido, monto, avisoCierre, plata)
         (S.rol === "preventa" ? '<span style="width:35px"></span>'
           : '<button id="d-ayer" style="font-size:19px;color:var(--verde);padding:0 8px">‹</button>') +
         '<span style="flex:1;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' +
-          fechaBonita(fechaVista()) + (sec ? ' · ' + escapar(sec.nombre) : (esHoy() ? '' : ' · Sin ruta este día')) + '</span>' +
+          fechaBonita(fechaVista()) + (sec ? ' · ' + escapar(sec.nombre)
+            : (esHoy() ? ' · Hoy no toca ninguna ruta' : ' · Sin ruta este día')) + '</span>' +
         '<button class="plata num" id="m-plata">' + money(esDesp ? plata.cobrado : monto) + '</button>' +
         (S.rol === "preventa" ? '<span style="width:35px"></span>'
           : '<button id="d-manana" style="font-size:19px;color:var(--verde);padding:0 8px">›</button>') +
@@ -7845,8 +7936,15 @@ function pintarMapaLleno(lista, visitados, conPedido, monto, avisoCierre, plata)
         : (esHoy() && total === 0)
         ? '<div class="siguiente" style="background:var(--f-cambio);border-color:var(--c-cambio)">' +
             '<span class="no">\u2205</span>' +
-            '<span class="qui"><b>Sin ruta</b>' +
-            '<small>Este sector no tiene clientes para hoy</small></span>' +
+            /* Dos cosas distintas que antes se decian igual: que HOY no
+               cae ninguna ruta (sabado, domingo) y que la ruta que si toca
+               esta vacia. La primera es normal; la segunda es trabajo de
+               oficina. */
+            (sec
+              ? '<span class="qui"><b>Sin ruta</b>' +
+                '<small>Esta ruta no tiene clientes todavía</small></span>'
+              : '<span class="qui"><b>Hoy no toca ninguna ruta</b>' +
+                '<small>Ninguna ruta tiene puesto este día</small></span>') +
           '</div>'
         : esHoy()
         ? '<div class="siguiente" style="background:var(--f-listo);border-color:var(--c-listo)">' +
@@ -7980,6 +8078,30 @@ function dibujarMapa(lista){
     .setView(centro, conPunto.length ? 15 : 13);
   L.control.attribution({prefix:false, position:"bottomleft"}).addTo(mapa);
   capaBase = null; capaEncima = null;
+
+  /* 🔴 EL PARPADEO DEL ARRANQUE. Antes el orden era: se ponia la vista en
+     el PRIMER cliente con zoom 15, se pedian los cuadritos del mapa para
+     ese encuadre, se dibujaban los pines, y hasta el final se hacia el
+     fitBounds que encuadra a TODOS — o sea otro centro y otro zoom — y un
+     invalidateSize() 120 ms despues, porque el recuadro acababa de nacer y
+     Leaflet lo habia medido antes de que la pantalla terminara de acomodar.
+
+     Eso son TRES vistas distintas seguidas, y cada una pide su propia
+     tanda de cuadritos: se veia como un temblor de un par de segundos al
+     entrar, y despues se quedaba quieto. Se sentia lento y no lo era.
+
+     Ahora se mide primero (invalidateSize con el recuadro ya en su lugar),
+     se encuadra despues, y solo entonces se pide el dibujo del mapa: una
+     sola tanda de cuadritos, la del encuadre bueno. */
+  try { mapa.invalidateSize({animate:false}); } catch(e){}
+  const encuadre = conPunto.map(c => [c.lat, c.lng]);
+  if (encuadre.length > 1){
+    try { mapa.fitBounds(encuadre, {padding:[40,40], animate:false}); } catch(e){}
+  }
+  if (vistaFijada){
+    try { mapa.setView(vistaFijada.centro, vistaFijada.zoom || 17, {animate:false}); } catch(e){}
+    vistaFijada = null;
+  }
   ponerCapa(capaGuardada());
   armarMenuCapas();
   /* El giro con dos dedos estaba escrito y NUNCA se encendia: armarGiroDedo()
@@ -7994,7 +8116,6 @@ function dibujarMapa(lista){
      porque CADA PIN YA LLEVA SU NUMERO de orden adentro. */
   capa = L.layerGroup().addTo(mapa);
   marcasRuta = [];
-  const puntos = [];
   conPunto.forEach((c, i) => {
     let clase = "";
     if (S.rol === "despacho"){
@@ -8044,12 +8165,10 @@ function dibujarMapa(lista){
     } else {
       mk.on("click", () => hojaCliente(c));
     }
-    puntos.push([c.lat, c.lng]);
   });
-  if (puntos.length > 1 && mapaVive()) try { mapa.fitBounds(puntos, {padding:[40,40]}); } catch(e){}
-  if (vistaFijada && mapaVive()){ try { mapa.setView(vistaFijada.centro, vistaFijada.zoom || 17); } catch(e){} vistaFijada = null; }
-  /* Despues del encuadre, que ya fijo el zoom de verdad: antes de eso el
-     abanico se calcularia con un zoom que no es el que se va a ver. */
+  /* El encuadre ya se hizo ARRIBA, antes de pedir los cuadritos del mapa
+     (ver el comentario del parpadeo). Aqui solo queda el abanico, que se
+     calcula con el zoom de verdad porque ese zoom ya esta puesto. */
   separarPines();
   setTimeout(() => { if (mapaVive()){ try { mapa.invalidateSize(); } catch(e){} separarPines(); } }, 120);
   acomodarFabs();
@@ -11502,6 +11621,22 @@ function ordenDeCliente(ped){
   return c && c.orden != null ? Number(c.orden) : 999;
 }
 
+/* Cuanto de lo pedido se puede entregar de verdad, producto por producto. */
+function quedaDeProducto(cod, pedidoTotal){
+  const corte = S.cortes[cod];
+  if (corte && corte.va != null)           // bodega lo miro y lo dijo
+    return {queda: Math.max(0, Number(corte.va) || 0), motivo: corte.motivo || "no hay en bodega"};
+  /* Lo mismo que en `selloExist`: una ficha que nadie conto no puede
+     recortar lo que sale del camion. Se pone en negativo sola --restando
+     entregas de un numero de partida inventado-- y el recorte se veria como
+     "no hay en bodega" cuando en bodega si hay. Bodega SI puede recortar: es
+     el corte de arriba, y ese lo mira una persona. */
+  const f = (S.existDoc || {})[cod];
+  if (f && f.contado === false) return {queda: pedidoTotal, motivo: "no hay en bodega"};
+  const d = S.exist[cod];
+  return {queda: (d != null && d < 0) ? Math.max(0, pedidoTotal + d) : pedidoTotal, motivo: "no hay en bodega"};
+}
+
 function ajustesReparto(pedidos){
   const reales = (pedidos || []).filter(p => p.tipo !== "cambio");
   const pedido = {};
@@ -11510,15 +11645,9 @@ function ajustesReparto(pedidos){
   }));
   const queda = {}, porque = {};
   Object.keys(pedido).forEach(cod => {
-    const corte = S.cortes[cod];
-    if (corte && corte.va != null){          // bodega lo miro y lo dijo
-      queda[cod] = Math.max(0, Number(corte.va) || 0);
-      porque[cod] = corte.motivo || "no hay en bodega";
-      return;
-    }
-    const d = S.exist[cod];
-    queda[cod] = (d != null && d < 0) ? Math.max(0, pedido[cod] + d) : pedido[cod];
-    porque[cod] = "no hay en bodega";
+    const r = quedaDeProducto(cod, pedido[cod]);
+    queda[cod] = r.queda;
+    porque[cod] = r.motivo;
   });
   const res = {};
   reales.slice().sort((a,b) => ordenDeCliente(a) - ordenDeCliente(b)).forEach(p => {
@@ -13959,56 +14088,31 @@ function corrido(iso, pasos){
   return f.getFullYear() + "-" + String(f.getMonth()+1).padStart(2,"0") + "-" + String(f.getDate()).padStart(2,"0");
 }
 
+/* Las metas por producto del mes: cuanto hay que vender de cada uno, en
+   unidades, y la cuota de cada vendedor. Las comisiones viven aparte, en
+   adminComisiones(): son otra pregunta y las ve otra gente. */
 function adminFoco(m){
   const foco = (S.foco && S.foco.productos) || [];
-  const c = S.comis || {porcentaje:0, bonoMeta:0, bonoFoco:0};
   const puedeCostos = S.rol === "admin";
 
   m.innerHTML =
-    '<div class="meta"><div class="eyebrow">Tabla de foco · ' + mesISO() + '</div>' +
-      '<div class="conteo">' + foco.length + ' productos en foco este mes</div>' +
+    '<div class="meta"><div class="eyebrow">Metas por producto · ' + mesISO() + '</div>' +
+      '<div class="conteo">' + foco.length + ' productos con meta este mes</div>' +
       '<div id="fo-avance"><div class="conteo">Cargando avance…</div></div>' +
     '</div>' +
 
     (soloVer() ? '' :
-    '<div class="pasos"><div class="eyebrow">Agregar producto al foco</div>' +
+    '<div class="pasos"><div class="eyebrow">Ponerle meta a un producto</div>' +
       '<label class="campo"><span>Producto</span><select id="fo-prod"><option value="">Elija…</option>' +
         S.catalogo.map(x => '<option value="' + x.cod + '">' + escapar(x.cod + " · " + x.nombre) + '</option>').join("") +
       '</select></label>' +
-      '<label class="campo"><span>Meta del mes (unidades, todo el equipo)</span>' +
+      '<label class="campo"><span>Meta del mes en unidades (todo el equipo junto)</span>' +
         '<input id="fo-meta" type="number" inputmode="numeric" value="100"></label>' +
-      '<button class="btn" id="fo-add" style="margin-top:14px">Agregar al foco</button>' +
+      '<button class="btn" id="fo-add" style="margin-top:14px">Guardar la meta</button>' +
       (puedeCostos ? '<button class="btn linea" id="fo-margen" style="margin-top:9px">Ver los 10 de mejor margen</button>' : '') +
       '<div id="fo-sug"></div></div>') +
 
-    '<div id="fo-lista"></div>' +
-
-    (puedeCostos ?
-    '<div class="pasos"><div class="eyebrow">Comisiones y bonos</div>' +
-      '<p style="font-size:14px;margin:8px 0 0">Se calcula sobre lo que se <b>entreg&oacute;</b>, no sobre lo pedido. ' +
-      'Si alguna regla no aplica, d&eacute;jela en cero.</p>' +
-      '<label class="campo"><span>Pagar sobre</span><select id="co-modo">' +
-        '<option value="venta"' + (c.modo !== "margen" ? " selected" : "") + '>La venta</option>' +
-        '<option value="margen"' + (c.modo === "margen" ? " selected" : "") + '>La ganancia (precio menos costo)</option>' +
-      '</select></label>' +
-      '<label class="campo"><span>Comisi&oacute;n sobre la venta (%)</span>' +
-        '<input id="co-pct" type="number" step="0.1" value="' + (c.porcentaje||0) + '"></label>' +
-      '<label class="campo"><span>Comisi&oacute;n sobre la ganancia (%)</span>' +
-        '<input id="co-pctm" type="number" step="0.1" value="' + (c.pctMargen||0) + '"></label>' +
-      '<div class="eyebrow" style="margin-top:16px">Por grupo A / B / C</div>' +
-      '<p style="font-size:13px;margin:6px 0 0;color:var(--tenue)">Opcional. Si pone un ' +
-        'porcentaje aqu&iacute;, manda sobre el de arriba para los productos de ese grupo. ' +
-        'D&eacute;jelo vac&iacute;o para que todos vayan parejo.</p>' +
-      ["A","B","C"].map(g =>
-        '<label class="campo"><span>Grupo ' + g + ' (%)</span><input id="co-g' + g + '" type="number" ' +
-        'step="0.1" value="' + (((c.porGrupo||{})[g] != null) ? c.porGrupo[g] : "") + '"></label>').join("") +
-      '<div class="eyebrow" style="margin-top:16px">Bonos</div>' +
-      '<label class="campo"><span>Bono por cumplir la meta ($)</span>' +
-        '<input id="co-meta" type="number" step="1" value="' + (c.bonoMeta||0) + '"></label>' +
-      '<label class="campo"><span>Bono por cumplir el foco ($)</span>' +
-        '<input id="co-foco" type="number" step="1" value="' + (c.bonoFoco||0) + '"></label>' +
-      '<button class="btn" id="co-guardar" style="margin-top:14px">Guardar reglas</button></div>' +
-    '<div id="co-cuentas"></div>' : '');
+    '<div id="fo-lista"></div>';
 
   // avance del mes
   db.collection("pedidos").where("mes","==",mesISO()).get().then(q => {
@@ -14136,14 +14240,57 @@ function adminFoco(m){
       top.map(x => '<div class="lin"><div><div class="n">' + escapar(x.p.nombre) + '</div>' +
         '<div class="d">' + x.p.cod + ' · ' + money(x.p.precio) + '</div></div>' +
         '<div class="t"><b class="num">' + x.m + '%</b>' +
-        '<div class="quitar" data-c="' + x.p.cod + '" style="color:var(--verde)">Al foco</div></div></div>').join("");
+        '<div class="quitar" data-c="' + x.p.cod + '" style="color:var(--verde)">Ponerle meta</div></div></div>').join("");
     $$("#fo-sug .quitar").forEach(b => b.onclick = () => {
       $("#fo-prod").value = b.dataset.c;
       $("#fo-meta").focus();
     });
   };
 
-  if ($("#co-guardar")) $("#co-guardar").onclick = async () => {
+}
+
+/* Como se paga: el porcentaje, los grupos y los bonos, y la cuenta del mes
+   de cada vendedor. Es de administracion y de nadie mas -- por eso esta
+   pestana no aparece en PESTANAS_SUPERVISOR ni en PESTANAS_VE_EQUIPO. El
+   `if` de aqui adentro es el cinturon: la pestana ya no deberia abrirse sin
+   ser admin, pero esto no depende de esa lista. */
+function adminComisiones(m){
+  if (S.rol !== "admin"){
+    m.innerHTML = '<div class="aviso dato">Las comisiones las lleva administraci\u00f3n.</div>';
+    return;
+  }
+  const c = S.comis || {porcentaje:0, bonoMeta:0, bonoFoco:0};
+
+  m.innerHTML =
+    '<div class="pasos"><div class="eyebrow">C\u00f3mo se paga</div>' +
+      '<p style="font-size:14px;margin:8px 0 0">Se calcula sobre lo que se <b>entreg&oacute;</b>, no sobre lo pedido. ' +
+      'Si alguna regla no aplica, d&eacute;jela en cero.</p>' +
+      '<label class="campo"><span>Pagar sobre</span><select id="co-modo">' +
+        '<option value="venta"' + (c.modo !== "margen" ? " selected" : "") + '>La venta</option>' +
+        '<option value="margen"' + (c.modo === "margen" ? " selected" : "") + '>La ganancia (precio menos costo)</option>' +
+      '</select></label>' +
+      '<label class="campo"><span>Comisi&oacute;n sobre la venta (%)</span>' +
+        '<input id="co-pct" type="number" step="0.1" value="' + (c.porcentaje||0) + '"></label>' +
+      '<label class="campo"><span>Comisi&oacute;n sobre la ganancia (%)</span>' +
+        '<input id="co-pctm" type="number" step="0.1" value="' + (c.pctMargen||0) + '"></label>' +
+      '<div class="eyebrow" style="margin-top:16px">Por grupo A / B / C</div>' +
+      '<p style="font-size:13px;margin:6px 0 0;color:var(--tenue)">Opcional. Si pone un ' +
+        'porcentaje aqu&iacute;, manda sobre el de arriba para los productos de ese grupo. ' +
+        'D&eacute;jelo vac&iacute;o para que todos vayan parejo.</p>' +
+      ["A","B","C"].map(g =>
+        '<label class="campo"><span>Grupo ' + g + ' (%)</span><input id="co-g' + g + '" type="number" ' +
+        'step="0.1" value="' + (((c.porGrupo||{})[g] != null) ? c.porGrupo[g] : "") + '"></label>').join("") +
+      '<div class="eyebrow" style="margin-top:16px">Bonos</div>' +
+      '<p style="font-size:13px;margin:6px 0 0;color:var(--tenue)">El de la meta se paga con lo de ' +
+        '<b>Metas del mes</b>; el del foco, con lo de <b>Metas por producto</b>.</p>' +
+      '<label class="campo"><span>Bono por cumplir la meta ($)</span>' +
+        '<input id="co-meta" type="number" step="1" value="' + (c.bonoMeta||0) + '"></label>' +
+      '<label class="campo"><span>Bono por cumplir el foco ($)</span>' +
+        '<input id="co-foco" type="number" step="1" value="' + (c.bonoFoco||0) + '"></label>' +
+      '<button class="btn" id="co-guardar" style="margin-top:14px">Guardar reglas</button></div>' +
+    '<div id="co-cuentas"></div>';
+
+  $("#co-guardar").onclick = async () => {
     const porGrupo = {};
     ["A","B","C"].forEach(g => {
       const v = $("#co-g" + g).value.trim();
@@ -14159,7 +14306,7 @@ function adminFoco(m){
     }), $("#co-guardar"));
   };
 
-  if (puedeCostos) pintarCuentasDelMes();
+  pintarCuentasDelMes();
 }
 
 /* Oficina calcula la cuenta de cada vendedor y la PUBLICA. El preventista
@@ -16304,7 +16451,17 @@ function adminExistencias(m){
         ' fichas sin contar.</b> Se mueven con el kardex, pero todavía nadie las ha ' +
         'contado en bodega, así que no avisan cuando llegan a cero.</div>'
       : '') +
-    '<div class="pasos"><div class="eyebrow">Cargar existencia</div>' +
+    '<div class="pasos"><div class="eyebrow">Cargar el conteo desde un Excel</div>' +
+      '<p style="font-size:14px;margin:8px 0 0">Para cuando bodega cuenta todo de una vez. ' +
+      'El Excel lleva el <b>código</b> en la primera columna y la <b>cantidad</b> en la siguiente; ' +
+      'lo demás se ignora. El <b>cero cuenta</b>: quiere decir que de ese producto no hay.</p>' +
+      '<p style="font-size:13px;margin:8px 0 0;color:var(--tenue)">Lo que se cargue aquí queda ' +
+      '<b>contado</b>, así que desde ese momento sí avisa cuando llega a cero. Lo que no venga en el archivo ' +
+      'no se toca.</p>' +
+      '<div class="fila" style="margin-top:10px"><input type="file" id="ex-archivo" accept=".xlsx,.xls,.csv"></div>' +
+      '<div id="ex-resumen" class="conteo"></div></div>' +
+
+    '<div class="pasos"><div class="eyebrow">Cargar existencia de un producto</div>' +
       '<p style="font-size:14px;margin:8px 0 0">Solo ponga aquí los productos escasos. El que no esté en esta lista se vende sin tope.</p>' +
       '<label class="campo"><span>Producto</span><select id="ex-prod"><option value="">Elija…</option>' +
         S.catalogo.map(p => '<option value="' + p.cod + '">' + escapar(p.cod + " · " + p.nombre) + '</option>').join("") +
@@ -16363,6 +16520,75 @@ function adminExistencias(m){
     }
     b.disabled = false;
     pintarAdmin();
+  };
+
+  let conteoLeido = null;
+  $("#ex-archivo").onchange = async e => {
+    const f = e.target.files[0]; if (!f) return;
+    const res = $("#ex-resumen"); res.textContent = "Leyendo…";
+    let mapa = {};
+    try {
+      await cargarSheetJS();
+      const wb = XLSX.read(await f.arrayBuffer(), {type:"array"});
+      mapa = leerConteo(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {header:1, defval:""}));
+    } catch(err){ res.textContent = "No se pudo leer (" + (err.message || err) + ")."; return; }
+
+    const porCod = {};
+    S.catalogo.forEach(p => porCod[String(p.cod).toUpperCase()] = p);
+    const reconocidos = Object.keys(mapa).filter(k => porCod[k]);
+    const desconocidos = Object.keys(mapa).filter(k => !porCod[k]);
+    if (!reconocidos.length){
+      res.innerHTML = 'No se reconoció ningún código. El archivo debe traer el código en la ' +
+        'primera columna y la cantidad en la siguiente.';
+      conteoLeido = null;
+      return;
+    }
+    conteoLeido = reconocidos.map(k => ({p: porCod[k], cant: mapa[k]}));
+    const enCero = conteoLeido.filter(x => x.cant === 0).length;
+    res.innerHTML = '<div style="text-align:left">' +
+      '<b>' + conteoLeido.length + ' productos reconocidos</b>' +
+      (enCero ? ' · ' + enCero + ' vienen en cero (no hay)' : '') +
+      (desconocidos.length ? '<br>' + desconocidos.length + ' códigos no están en el catálogo y se ignoran: ' +
+        escapar(desconocidos.slice(0,6).join(", ")) + (desconocidos.length > 6 ? "…" : "") : '') +
+      '<br>' + Math.max(0, S.catalogo.length - conteoLeido.length) + ' productos del catálogo no vienen en el archivo y se quedan igual.' +
+      '</div>' +
+      '<button class="btn" id="ex-subir" style="margin-top:12px">Guardar el conteo de ' +
+        conteoLeido.length + ' productos</button>';
+
+    $("#ex-subir").onclick = async () => {
+      if (!conteoLeido || !conteoLeido.length) return;
+      if (!confirm("Se guarda el conteo de " + conteoLeido.length + " productos.\n\n" +
+        "Quedan CONTADOS: desde ahora sí avisan cuando llegan a cero.\n\n¿Seguro?")) return;
+      const b = $("#ex-subir");
+      b.disabled = true;
+      let hechas = 0;
+      try {
+        /* De 400 en 400: un lote de Firestore aguanta 500 escrituras. */
+        for (let i = 0; i < conteoLeido.length; i += 400){
+          const tanda = conteoLeido.slice(i, i + 400);
+          const lote = db.batch();
+          tanda.forEach(x => lote.set(db.collection("existencias").doc(x.p.cod), {
+            disponible: x.cant,
+            nombre: x.p.nombre || "",
+            unidad: x.p.unidad || "UNIDAD",
+            contado: true,
+            actualizado: firebase.firestore.FieldValue.serverTimestamp()
+          }, {merge: true}));
+          await lote.commit();
+          hechas += tanda.length;
+          b.textContent = "Guardando… " + hechas + " de " + conteoLeido.length;
+        }
+        conteoLeido = null;
+        alert("Listo: " + hechas + " fichas con el conteo de bodega.");
+        pintarAdmin();
+      } catch(err){
+        b.disabled = false;
+        b.textContent = "Guardar el conteo";
+        alert("Se guardaron " + hechas + " y ahí se detuvo (" + (err.code || err.message) + ").\n\n" +
+          "Las que entraron quedaron bien. Puede volver a subir el mismo archivo: " +
+          "vuelve a escribir el mismo número, no lo suma.");
+      }
+    };
   };
 
   $("#ex-add").onclick = async () => {

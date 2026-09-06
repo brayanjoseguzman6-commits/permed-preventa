@@ -136,11 +136,28 @@ prueba("otro día sin ruta NO inventa una", () => {
   igual(sectorDeHoy(), "");
 });
 
-prueba("HOY, sin ruta que toque, se abre la primera para no dejarlo en blanco", () => {
+prueba("HOY, si ninguna ruta toca pero otras SÍ tienen día puesto, no se inventa una", () => {
+  // Arreglo real (Abner, 05-09-2026): antes HOY caía SIEMPRE en la primera
+  // ruta de la lista cuando ninguna coincidía con el día -y como ninguna de
+  // las 41 rutas reales tiene sábado ni domingo, cada fin de semana la app
+  // abría "Lolotique" (la primera) con la fecha de hoy, con clientes que ni
+  // eran de esa ruta. La respuesta honesta es que hoy no toca ninguna.
   const S = mundoSectores("preventa", [{ id: "c1", sectorId: "s1", preventaUid: "yo" }]);
   const { sectorDeHoy } = cargar(["misSectores", "tieneDia", "sectorDeHoy"],
+    { S, fechaVista: () => "2026-09-06", esHoy: () => true });   // domingo; s1 es jueves, s4 es miércoles
+  igual(sectorDeHoy(), "", "s1 y s4 SÍ tienen día puesto, solo que no es hoy: no hay que inventar ninguna");
+});
+
+prueba("HOY, si NADIE tiene un día puesto todavía, se abre la primera para no dejar la pantalla en blanco", () => {
+  // El único caso que sí justifica el respaldo: recién se está configurando
+  // y todavía no hay ni una ruta con día. Ahí sí hace falta algo que
+  // mostrar, o el preventista nuevo no ve nada con qué empezar.
+  const S = { usuario: { uid: "yo" }, rol: "preventa",
+              sectores: [{ id: "z1", nombre: "Sin día todavía" }, { id: "z2", nombre: "Tampoco" }],
+              clientes: [{ id: "c1", sectorId: "z1", preventaUid: "yo" }] };
+  const { sectorDeHoy } = cargar(["misSectores", "tieneDia", "sectorDeHoy"],
     { S, fechaVista: () => "2026-09-06", esHoy: () => true });
-  igual(sectorDeHoy(), "s1");
+  igual(sectorDeHoy(), "z1");
 });
 
 prueba("un sector SIN día no se confunde con el domingo", () => {
