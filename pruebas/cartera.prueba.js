@@ -19,19 +19,20 @@ function conRol(rol, uid = "yo") {
 
 prueba("el cliente de otro preventista no es mío", () => {
   const S = conRol("preventa");
-  const { esMio } = cargar(["esMio"], { S });
+  const { esMio } = cargar(["esMio", "suplenciaDe"], { S });
   cierto(esMio({ preventaUid: "yo" }));
   falso(esMio({ preventaUid: "otro" }));
 });
 
-prueba("el cliente sin dueño lo ve cualquiera", () => {
-  // Es a propósito: un cliente nuevo, sin preventista asignado, tiene que
-  // poder atenderlo el que pase. Pero con media cartera sin asignar, esto
-  // hace que dos vendedores vean a la misma gente.
+prueba("el cliente sin dueño y sin ruta no es de nadie (Brayan, 10-09-2026)", () => {
+  // Antes, un cliente sin preventista lo veía cualquiera -pero con media
+  // cartera sin asignar, eso hacía que dos vendedores vieran a la misma
+  // gente. Brayan lo cambió: ahora, si ni el cliente ni su ruta tienen
+  // dueño, no es de nadie hasta que oficina lo asigne.
   const S = conRol("preventa");
-  const { esMio } = cargar(["esMio"], { S });
-  cierto(esMio({ preventaUid: null }));
-  cierto(esMio({}));
+  const { esMio } = cargar(["esMio", "suplenciaDe"], { S });
+  falso(esMio({ preventaUid: null }));
+  falso(esMio({}));
 });
 
 prueba("el motorista y oficina ven a todos", () => {
@@ -42,7 +43,7 @@ prueba("el motorista y oficina ven a todos", () => {
 });
 
 prueba("el supervisor, en la calle, ve SU parte y no toda la ruta", () => {
-  const { esMio } = cargar(["esMio"], { S: conRol("supervisor") });
+  const { esMio } = cargar(["esMio", "suplenciaDe"], { S: conRol("supervisor") });
   cierto(esMio({ preventaUid: "yo" }));
   falso(esMio({ preventaUid: "otro" }));
 });
@@ -75,25 +76,28 @@ prueba("una ruta es mía si adentro tengo aunque sea un cliente", () => {
     { id: "c1", sectorId: "s1", preventaUid: "yo" },
     { id: "c2", sectorId: "s2", preventaUid: "otro" },
   ]);
-  const { misSectores } = cargar(["misSectores"], { S });
+  const { misSectores } = cargar(["misSectores", "cubroHoy"], { S });
   igual(misSectores().map(x => x.id), ["s1", "s4"],
         "s1 por el cliente, s4 porque se lo asignaron entero");
 });
 
 prueba("las rutas apagadas no le salen a nadie", () => {
   const S = mundoSectores("preventa", [{ id: "c", sectorId: "s3", preventaUid: "yo" }]);
-  const { misSectores } = cargar(["misSectores"], { S });
+  const { misSectores } = cargar(["misSectores", "cubroHoy"], { S });
   falso(misSectores().some(x => x.id === "s3"));
 });
 
-prueba("el preventista nuevo, sin un solo cliente, ve las rutas sin dueño", () => {
-  // Si se le devolviera una lista vacía no podría ni empezar a trabajar.
-  // Nadie: ni sector propio ni clientes suyos.
+prueba("el preventista nuevo, sin nada asignado, no ve nada (Brayan, 10-09-2026)", () => {
+  // Antes, sin nada asignado, se le mostraban los sectores SIN dueño para
+  // que no amaneciera en blanco -pero eso mismo le arrastraba clientes que
+  // no eran suyos apenas oficina le asignaba UNA ruta. Brayan lo invirtió:
+  // ahora ve la pantalla vacía hasta que oficina le ponga algo, que ya
+  // avisa "sin preventista" en Asignar rutas.
   const S = { usuario: { uid: "recien-llegado" }, rol: "preventa",
               sectores: SECTORES, clientes: [] };
-  const { misSectores } = cargar(["misSectores"], { S });
-  igual(misSectores().map(x => x.id), ["s1"],
-        "solo las que no tienen dueño; s2 y s4 ya son de alguien");
+  const { misSectores } = cargar(["misSectores", "cubroHoy"], { S });
+  igual(misSectores().map(x => x.id), [],
+        "sin ruta ni cliente asignado, no ve nada; oficina lo tiene que asignar");
 });
 
 prueba("el motorista va por CAMIÓN, no por preventista", () => {
@@ -122,7 +126,7 @@ prueba("un día con día puesto se elige, no el primero de la lista", () => {
     { id: "c4", sectorId: "s4", preventaUid: "yo" },   // Del jefe, miércoles
   ]);
   // 2026-09-03 es jueves.
-  const { sectorDeHoy } = cargar(["misSectores", "tieneDia", "sectorDeHoy"],
+  const { sectorDeHoy } = cargar(["misSectores", "tieneDia", "sectorDeHoy", "cubroHoy"],
     { S, fechaVista: () => "2026-09-03", esHoy: () => true });
   igual(sectorDeHoy(), "s1");
 });
@@ -131,7 +135,7 @@ prueba("otro día sin ruta NO inventa una", () => {
   // 🔑 Este es el defecto que se veía como «todos los días dice
   // Lolotique»: al correr las fechas se quedaba el sector de hoy.
   const S = mundoSectores("preventa", [{ id: "c1", sectorId: "s1", preventaUid: "yo" }]);
-  const { sectorDeHoy } = cargar(["misSectores", "tieneDia", "sectorDeHoy"],
+  const { sectorDeHoy } = cargar(["misSectores", "tieneDia", "sectorDeHoy", "cubroHoy"],
     { S, fechaVista: () => "2026-09-06", esHoy: () => false });   // domingo
   igual(sectorDeHoy(), "");
 });
@@ -143,7 +147,7 @@ prueba("HOY, si ninguna ruta toca pero otras SÍ tienen día puesto, no se inven
   // abría "Lolotique" (la primera) con la fecha de hoy, con clientes que ni
   // eran de esa ruta. La respuesta honesta es que hoy no toca ninguna.
   const S = mundoSectores("preventa", [{ id: "c1", sectorId: "s1", preventaUid: "yo" }]);
-  const { sectorDeHoy } = cargar(["misSectores", "tieneDia", "sectorDeHoy"],
+  const { sectorDeHoy } = cargar(["misSectores", "tieneDia", "sectorDeHoy", "cubroHoy"],
     { S, fechaVista: () => "2026-09-06", esHoy: () => true });   // domingo; s1 es jueves, s4 es miércoles
   igual(sectorDeHoy(), "", "s1 y s4 SÍ tienen día puesto, solo que no es hoy: no hay que inventar ninguna");
 });
@@ -155,7 +159,7 @@ prueba("HOY, si NADIE tiene un día puesto todavía, se abre la primera para no 
   const S = { usuario: { uid: "yo" }, rol: "preventa",
               sectores: [{ id: "z1", nombre: "Sin día todavía" }, { id: "z2", nombre: "Tampoco" }],
               clientes: [{ id: "c1", sectorId: "z1", preventaUid: "yo" }] };
-  const { sectorDeHoy } = cargar(["misSectores", "tieneDia", "sectorDeHoy"],
+  const { sectorDeHoy } = cargar(["misSectores", "tieneDia", "sectorDeHoy", "cubroHoy"],
     { S, fechaVista: () => "2026-09-06", esHoy: () => true });
   igual(sectorDeHoy(), "z1");
 });

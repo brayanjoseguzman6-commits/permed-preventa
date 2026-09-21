@@ -26,7 +26,8 @@ prueba("arrancar un pedido nuevo suelta cualquier edición pendiente de otro cli
     editando: "pedA123", cliente: { id: "A" }, carrito: [{ cod: "X", cant: 1 }]
   };
   let fueACatalogo = false;
-  const { arrancarPedido } = cargar(["arrancarPedido"], {
+  const { arrancarPedido } = cargar(
+    ["arrancarPedido", "modoFiscalDe", "esContribuyente", "fiscalDe", "fiscalDeOficina"], {
     S, cerrarHoja: () => {}, irA: p => { if (p === "catalogo") fueACatalogo = true; }
   });
 
