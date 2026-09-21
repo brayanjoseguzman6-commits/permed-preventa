@@ -1,6 +1,6 @@
 /* Service worker: guarda la app en el teléfono para que abra sin señal.
    Al publicar una versión nueva, cambie el número de CACHE. */
-const CACHE = "preventa-v61";
+const CACHE = "preventa-v62";
 /* El mapa va en su propia caja, que NO se borra al publicar (13-09-2026:
    «un mapa fijo, que nomás entre y ya esté ahí»). Antes cada versión nueva
    tiraba las calles guardadas y el teléfono las volvía a pedir con la

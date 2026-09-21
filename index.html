@@ -71,7 +71,6 @@ function marcaRevisa(img){
   --verde:#1D2340; --verde-claro:#E7E9F0;
   --senal:#D89A16; --rojo:#B23636; --ok:#1F7A4D; --ch-nuevo:#1DAA61;
   --linea:#DCE0E8; --tenue:#6C7689;
-  --lado-t:#C9CFE0; --lado-2:#2A3156;   /* letra y hover de la barra lateral navy */
   --r:16px;
   /* todo sale del navy y el dorado del logo.
      verde y rojo solo para decir "salio bien" y "se perdio" */
@@ -108,23 +107,11 @@ html[data-estilo="cielo"]{
   --c-mover:#7C3AED;   --f-mover:#EDE9FE;
   --c-marcar:#0891B2;  --f-marcar:#CFFAFE;
 }
-/* La barra lateral de la referencia es clara, no de color: el activo se
-   marca con una pastilla azul palida y letra azul, no con un bloque. */
-/* La barra lateral. En la referencia es BLANCA, no de color, y lo que
-   marca donde uno esta es una pastilla azul palida con la letra azul --no
-   un bloque de color que grita. Estos colores estan escritos a mano y no
-   por variables porque el bloque original tambien lo esta: son colores de
-   la barra, no del sistema. */
-html[data-estilo="cielo"] .tb-lado{background:#FFFFFF;color:var(--tinta);
-  border-right:1px solid var(--linea)}
-html[data-estilo="cielo"] .tb-sec{color:var(--tenue)}
-html[data-estilo="cielo"] .tb-nav button{color:#475569}
-html[data-estilo="cielo"] .tb-nav button:hover{background:#F1F5F9;color:var(--tinta)}
-html[data-estilo="cielo"] .tb-nav button[aria-pressed=true]{
-  background:var(--verde-claro);color:var(--verde)}
-html[data-estilo="cielo"] .tb-pie{border-top-color:var(--linea);color:var(--tenue)}
-html[data-estilo="cielo"] .tb-pie b{color:var(--tinta)}
-html[data-estilo="cielo"] .tb-pie .tb-version button{color:var(--verde)}
+/* El riel de Administrar ya no necesita un bloque aparte por tema: sale
+   entero de var(--tinta)/var(--papel)/var(--carta)/var(--linea), que
+   Cielo, Sol y Noche ya redefinen arriba. Antes la barra lateral era de
+   color fijo (navy) y por eso Cielo necesitaba este bloque a mano; el
+   riel angosto no lleva ese color fijo, asi que se pinta solo. */
 /* El boton principal: en la referencia es azul PLANO. El degradado y la
    sombra pesada vienen del tema navy y aqui se ven como un boton de
    otra app pegado encima. */
@@ -396,6 +383,19 @@ main{flex:1;padding:12px 14px 150px}
 .pestanas::-webkit-scrollbar{display:none}
 .pestana{flex:0 0 auto;padding:9px 14px;border-radius:999px;font-size:13px;font-weight:700;background:var(--carta);border:1.5px solid var(--linea)}
 .pestana[aria-pressed=true]{background:var(--tinta);border-color:var(--tinta);color:#fff}
+/* Las pestañas menos usadas de cada grupo (PESTANAS_PRIMARIAS, en el JS)
+   quedan bajo este <details>: la fila de arriba ya no crece con las 5 o
+   6 pestañas de "Equipo" o "Productos" -- eso era lo que el riel venía a
+   arreglar. Van con position:absolute para no empujar la fila (que sigue
+   con scroll horizontal en el teléfono) cuando se abren. */
+.pestanas-mas{position:relative;flex:0 0 auto}
+.pestanas-mas summary{list-style:none;cursor:pointer;padding:9px 14px;border-radius:999px;font-size:13px;
+  font-weight:700;background:var(--carta);border:1.5px dashed var(--linea);color:var(--tenue)}
+.pestanas-mas summary::-webkit-details-marker{display:none}
+.pestanas-mas[open] summary{background:var(--tinta);border-color:var(--tinta);border-style:solid;color:#fff}
+.pestanas-mas-lista{position:absolute;top:calc(100% + 6px);left:0;z-index:45;display:flex;flex-wrap:wrap;
+  gap:6px;background:var(--carta);border:1px solid var(--linea);border-radius:12px;padding:8px;
+  box-shadow:0 8px 24px rgba(15,23,42,.14);width:max-content;max-width:min(320px,80vw)}
 .fila{display:flex;gap:9px;align-items:center;margin:9px 0}
 .fila .btn{width:auto;flex:1}
 table.lista{width:100%;max-width:100%;table-layout:fixed;border-collapse:collapse;font-size:13px}
@@ -1939,28 +1939,46 @@ body.con-nav #admin-cuerpo{padding-bottom:calc(120px + env(safe-area-inset-botto
 /* ===================== Administrar: el tablero =====================
    La pantalla que pidio Brayan (3 sep 2026): menu lateral, seis
    tarjetas, grafica de la semana, dona de estados, actividad, tablas y
-   acciones rapidas. En telefono el menu se esconde y sale con las tres
-   rayas. Todo con prefijo tb- para no chocar con lo demas. */
+   acciones rapidas.
+
+   19-09-2026: el menu lateral de 226px con la lista completa de
+   pestanas por escrito se cambia por el riel de iconos angosto que ya
+   usa D'Eliza (instalacion hermana) -- mismo vestido visual, pero con
+   los grupos y pestanas que YA TIENE Permed (GRUPOS, mas abajo), sin
+   tocar cuales son ni que hace cada uno. En telefono el riel se vuelve
+   una barra fija abajo, en vez de un cajon que hay que abrir con las
+   tres rayas: siempre esta puesto, no hay que ir a buscarlo. Todo con
+   prefijo tb- (lo de siempre) o riel- (lo nuevo) para no chocar con lo
+   demas. */
 #pant-admin{flex-direction:row;align-items:stretch}
-.tb-lado{flex:0 0 226px;width:226px;background:var(--verde);color:var(--lado-t);display:flex;flex-direction:column;
-  position:sticky;top:0;height:100dvh;overflow:auto;z-index:30;scrollbar-width:thin}
-html[data-estilo="noche"] .tb-lado{background:#080B14}
-.tb-logo{padding:18px 18px 10px;display:flex;align-items:center}
-.tb-logo img{height:30px;width:auto;display:block}
-.tb-sec{font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;color:rgba(255,255,255,.45);padding:14px 20px 5px;font-weight:800}
-.tb-nav{display:flex;flex-direction:column;gap:2px;padding:0 10px}
-.tb-nav button{display:flex;align-items:center;gap:11px;padding:7px 11px;border-radius:7px;color:var(--lado-t);font-size:13.5px;font-weight:500;text-align:left;width:100%;position:relative}
-.tb-nav button svg,.tb-ico{width:17px;height:17px;flex:0 0 17px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.tb-nav button:hover{background:rgba(255,255,255,.08);color:#fff}
-.tb-nav button[aria-pressed=true]{background:var(--lado-2);color:#fff;font-weight:700}
-.tb-nav button[aria-pressed=true]::before{content:"";position:absolute;left:0;top:7px;bottom:7px;width:3px;border-radius:2px;background:var(--senal)}
-.tb-sec-lado.apagado{margin-top:auto;padding-top:6px;border-top:1px solid rgba(255,255,255,.1)}
-.tb-sec-lado.apagado .tb-nav button{color:rgba(255,255,255,.5);font-size:13px}
-.tb-sec-lado.apagado ~ .tb-pie{margin-top:0}
-.tb-pie{margin-top:auto;padding:14px 16px 16px;border-top:1px solid rgba(255,255,255,.12);font-size:12px;color:rgba(255,255,255,.55)}
-.tb-pie b{display:block;color:#fff;font-size:13px}
-.tb-pie .tb-version{display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-variant-numeric:tabular-nums}
-.tb-pie .tb-version button{color:var(--senal);font-weight:800;font-size:12.5px}
+/* ---- El riel: la navegacion de Administrar, siempre puesta ---- */
+#adm-riel{--riel-color:var(--tinta);flex:0 0 76px;width:76px;background:var(--papel);border-right:1px solid var(--linea);
+  display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 0;overflow-y:auto;
+  position:sticky;top:0;height:100dvh;z-index:30;overscroll-behavior:contain}
+#adm-riel .riel-b{width:62px;min-height:56px;padding:7px 2px 6px;border:0;background:none;
+  border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:4px;cursor:pointer;color:var(--tinta);opacity:.68;position:relative;
+  font:600 9.5px/1.15 inherit;letter-spacing:.01em;text-align:center}
+/* El color del grupo va en el icono, nunca en la letra: a opacidad de
+   reposo (.68) varios de estos colores no llegan al contraste minimo
+   para leerse en texto. Mismo cuidado que ya llevan los botones de
+   "Acciones rapidas" del tablero (tbAcciones). */
+/* La insignia de color: el mismo cuadrito con fondo del grupo que ya
+   usaba D'Eliza en sus tarjetas (tb-ico), ahora tambien en el riel --
+   Brayan, 21-09-2026: "pon los mismos colores" (referia a la maqueta). */
+#adm-riel .riel-ico{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;
+  flex:0 0 auto;box-shadow:0 2px 5px -1px rgba(16,18,31,.35)}
+#adm-riel .riel-b svg{width:18px;height:18px;flex:0 0 auto;color:#fff;
+  fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#adm-riel .riel-b span{display:block;max-width:100%;white-space:nowrap}
+#adm-riel .riel-b:hover{opacity:1;background:rgba(18,24,38,.04)}
+#adm-riel .riel-b[aria-current="page"]{opacity:1;background:var(--carta);font-weight:800;
+  box-shadow:inset 0 0 0 1px rgba(17,24,39,.05)}
+#adm-riel .riel-b[aria-current="page"] .riel-ico{box-shadow:0 3px 7px -1px rgba(16,18,31,.45)}
+/* La marca del grupo abierto no es solo el color: tambien es la barrita. */
+#adm-riel .riel-b[aria-current="page"]::before{content:"";position:absolute;left:-7px;top:9px;
+  bottom:9px;width:3px;border-radius:0 3px 3px 0;background:var(--riel-color, var(--verde))}
+#adm-riel .riel-todas{margin-top:auto;color:var(--tinta)}
 .tb-cuerpo{flex:1;min-width:0;display:flex;flex-direction:column}
 /* La cabecera de Administrar era navy con letra blanca; el tablero la
    pide blanca, como la foto. Se corrige aqui lo que venia de esa regla. */
@@ -1971,8 +1989,6 @@ html[data-estilo="noche"] #pant-admin header{background:var(--carta);border-bott
 #pant-admin .pestana{border-color:var(--linea);color:var(--tenue);background:var(--papel)}
 #pant-admin.tb-portada #admin-cuerpo{max-width:none}
 .tb-cab{gap:12px}
-.tb-ham{display:none;width:36px;height:36px;border-radius:9px;align-items:center;justify-content:center;flex:0 0 36px}
-.tb-ham svg{width:20px;height:20px;stroke:currentColor;stroke-width:2;stroke-linecap:round;fill:none}
 .tb-titulo{flex-direction:column;align-items:flex-start;gap:0;min-width:0}
 .tb-titulo b{font-size:19px;line-height:1.15;white-space:nowrap}
 #pant-admin .tb-sub{font-size:12px;color:var(--tenue);font-weight:600;letter-spacing:0;text-transform:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
@@ -2089,7 +2105,6 @@ html[data-estilo="noche"] .tb-acc .a4{background:#16233D;color:#5A9BFF}
 .tb-res4 .tb-d{font-size:11px}
 .tb-pieapp{text-align:center;font-size:12px;color:var(--tenue);padding:6px 0 4px}
 .tb-vacio{padding:12px 16px 18px;font-size:13px;color:var(--tenue)}
-.tb-velo{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1440;display:none}
 .tb-avisos{display:grid;gap:10px;margin-bottom:12px}
 /* ---- La portada sobria (ps-), 12-09-2026 ----
    Se lee como un reporte: sin iconos, sin círculos de colores, sin emoji.
@@ -2183,8 +2198,16 @@ html[data-estilo="noche"] .ps-barrita i{background:var(--senal)}
   .ps-herr select{flex:1 1 40%}
 }
 @media (min-width:900px){
-  #pant-admin #pestanas{display:none !important}
-  /* en PC el menu lateral ya lleva todo; la barra de abajo solo tapaba */
+  /* 🔴 Antes esto escondia #pestanas en PC a proposito: la barra lateral
+     de 226px ya escribia el nombre de las once pestanas, asi que la tira
+     de arriba sobraba. El riel angosto NO hace eso -- solo pinta el
+     icono del grupo, no sus pestanas -- asi que si esto se dejaba, en PC
+     no habia forma de llegar a la segunda pestana de un grupo (Precios,
+     Costos, Comisiones...): quedaban atrapadas detras de la primera.
+     Ahora #pestanas se ve en las dos anchuras; ajustarPestanas() ya
+     decide sola si hace falta pintarla (grupo con una sola pestana no
+     la pinta, sea PC o telefono). */
+  /* la barra de abajo del preventa solo tapaba, aqui no hace falta */
   body.con-nav .nav{display:none}
   body.con-nav #admin-cuerpo{padding-bottom:40px}
   /* Pegado a la izquierda, junto a la barra lateral, y no flotando en el
@@ -2195,10 +2218,21 @@ html[data-estilo="noche"] .ps-barrita i{background:var(--senal)}
 }
 @media (max-width:899px){
   #pant-admin{flex-direction:column}
-  .tb-lado{position:fixed;left:0;top:0;bottom:0;width:262px;height:100dvh;transform:translateX(-100%);transition:transform .2s;z-index:1450}
-  #pant-admin.tb-abierto .tb-lado{transform:none}
-  #pant-admin.tb-abierto .tb-velo{display:block}
-  .tb-ham{display:flex}
+  /* En el telefono la navegacion se va abajo y se queda fija, en vez de
+     un cajon de 262px que habia que abrir con las tres rayas. Caben tres
+     destinos y el boton de "Todas": un quinto se iria sin avisar, por
+     eso DESTINOS_TELEFONO elige cuales tres (ver el JS). */
+  #adm-riel{position:fixed;left:0;right:0;bottom:0;top:auto;width:auto;height:auto;flex:none;
+    flex-direction:row;border-right:0;border-top:1px solid var(--linea);background:var(--carta);
+    padding:4px 2px calc(4px + env(safe-area-inset-bottom));z-index:1450;overflow:visible;
+    box-shadow:0 -2px 10px rgba(16,18,31,.12)}
+  #adm-riel .riel-b{display:none}
+  #adm-riel .riel-b.riel-tel{display:flex;flex:1 1 0;min-width:0;width:auto;min-height:48px}
+  #adm-riel .riel-b[aria-current="page"]::before{left:14%;right:14%;top:-4px;bottom:auto;
+    width:auto;height:3px;border-radius:0 0 3px 3px}
+  #adm-riel .riel-todas{margin-top:0}
+  /* Que la barra de abajo no tape la ultima fila de cada pantalla. */
+  #pant-admin .tb-cuerpo{padding-bottom:62px}
   .tb-titulo b{font-size:17px}
   .tb-sub{display:none}
   .tb-cab{flex-wrap:wrap}
@@ -2214,7 +2248,6 @@ html[data-estilo="noche"] .ps-barrita i{background:var(--senal)}
   .tb-f2,.tb-f3,.tb-f4{grid-template-columns:1fr}
   .tb-fecha{justify-content:flex-start}
 }
-@media (prefers-reduced-motion:reduce){.tb-lado{transition:none}}
 /* ===== Ficha por persona (modelo: Detalles de usuario de Handy) ===== */
 .fi-cab{display:flex;align-items:center;gap:12px;background:var(--carta);border:1px solid var(--linea);border-radius:14px;padding:14px 16px;flex-wrap:wrap}
 .fi-av{width:48px;height:48px;flex-basis:48px;font-size:16px}
@@ -2716,12 +2749,10 @@ body:has(#carro:not(.oculto)) .fab-cli{bottom:calc(142px + env(safe-area-inset-b
 
 <!-- ============ ADMINISTRACIÓN ============ -->
 <section id="pant-admin" class="pantalla oculto">
-  <div class="tb-velo" id="tb-velo"></div>
-  <aside class="tb-lado" id="tb-lado"></aside>
+  <nav id="adm-riel" aria-label="Secciones de administración"></nav>
   <div class="tb-cuerpo">
     <header>
       <div class="fila-top tb-cab">
-        <button class="tb-ham" id="tb-ham" aria-label="Menú"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
         <div class="marca tb-titulo"><b>Administrar</b><span class="tb-sub" id="tb-sub"></span></div>
         <div class="tb-busca"><input id="tb-buscar" type="search" autocomplete="off" placeholder="Buscar cliente, producto o pedido…"><div class="tb-res oculto" id="tb-res"></div></div>
         <button class="tb-ic oculto" id="tb-chat" aria-label="Chat del equipo"><svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></svg><i class="globo globo-chat oculto"></i></button>
@@ -6562,18 +6593,24 @@ const ICONO_GRUPO = {hoy:"\u25c8", clientes:"\u25ce", catalogo:"\u25eb",
    `vivo` --el mapa en vivo de todos a la vez-- SI sale de la navegacion,
    y esa fue la orden: «asegurate de quitar el mapa en vivo por uno que
    podas abrir por trabajador». Lo reemplaza `supervision`. */
+/* El color de cada grupo es solo del riel (ver #adm-riel en el CSS): no
+   toca permisos ni orden, nomas ayuda al ojo a distinguir un icono de
+   otro antes de leer la letra. Elegidos para no repetir ningun --c-* /
+   --senal / --rojo / --ok que ya SIGNIFICA "aprobado", "atencion" o
+   "se perdio" en otra parte de la app -- un color de navegacion no
+   deberia competir con un color de estado. */
 const GRUPOS = [
-  {id:"hoy", nombre:"Hoy",
+  {id:"hoy", nombre:"Hoy", color:"#2563EB",
    pie:"Los n\u00fameros del d\u00eda, los pedidos que entraron, c\u00f3mo va el reparto y lo que hay en bodega.",
    tabs:[["tablero","Ayer, semana y mes"],["vivo","En vivo"],["supervision","Preventa por preventa"],["pedidos","Pedidos"],["reparto","Reparto"],["existencias","Bodega"]]},
-  {id:"clientes", nombre:"Clientes",
+  {id:"clientes", nombre:"Clientes", color:"#0EA5E9",
    pie:"Dar de alta tiendas, encerrarlas en el mapa y armar las rutas.",
    tabs:[["clientes","Clientes"],["zonificar","Zonificador"],["sectores","Rutas"],["repetidos","Repetidos"],["nuevos","Nuevos"]]},
-  {id:"catalogo", nombre:"Productos",
+  {id:"catalogo", nombre:"Productos", color:"#16A34A",
    pie:"Qu\u00e9 se vende, cu\u00e1nto cuesta y hasta d\u00f3nde puede rebajar un preventa.",
    tabs:[["productos","Productos"],["cargarCat","Cargar del Excel"],["costos","Costos"],["precios","Listas de precios"],
          ["portafolio","Portafolio"]]},
-  {id:"equipo", nombre:"Equipo",
+  {id:"equipo", nombre:"Equipo", color:"#8B5CF6",
    pie:"Las cuentas de la gente, sus metas, sus comisiones y el d\u00eda de cada uno.",
    /* Tres pestanas para tres cosas distintas (Abner, 05-09-2026). Antes,
       `foco` se rotulaba "Comisiones" y traia las dos cosas adentro: se abria
@@ -6586,7 +6623,7 @@ const GRUPOS = [
    tabs:[["usuarios","Cuentas"],["metas","Metas del mes"],["foco","Metas por producto"],
          ["comisiones","Comisiones"],["ficha","Ficha por persona"],
          ["supervisores","Supervisores"]]},
-  {id:"ajustes", nombre:"Ajustes",
+  {id:"ajustes", nombre:"Ajustes", color:"#64748B",
    pie:"Horas de trabajo, d\u00edas de entrega y datos de la empresa. Casi nunca se toca.",
    tabs:[["ajustes","Ajustes"],["registros","Registros"],["salud","Salud del sistema"],["ayuda","Ayuda"]]}
 ];
@@ -6619,6 +6656,31 @@ const GUIA = {
   salud:    "Los errores de verdad que le salieron a alguien en el teléfono, aunque nadie los reporte por teléfono.",
   ayuda:    "Las cuatro cosas que se hacen de vez en cuando, paso por paso.",
   portafolio:"Qu\u00e9 productos dejan plata y cu\u00e1les no: volumen contra margen, y las tres reglas de corte."
+};
+
+/* ===================== Menos usado, bajo un pliegue =====================
+   Con el menu lateral escrito, las 5-6 pesta\u00f1as de un grupo se le\u00edan
+   TODAS de un vistazo. Con el riel de iconos eso ya no pasa: al abrir un
+   grupo, ajustarPestanas() sigue pintando la tira de pesta\u00f1as de
+   siempre, pero ahora deja arriba, sueltas, solo las 2-3 que se tocan
+   seguido, y mete el resto bajo un <details> ("M\u00e1s \u25be") -- as\u00ed la tira no
+   se vuelve un rengl\u00f3n de seis botones que hay que leer entero cada vez.
+   No existe en D'Eliza; es cosecha propia para esta pantalla m\u00e1s chica.
+
+   La pesta\u00f1a que este ABIERTA ahorita siempre se ve, aunque est\u00e9 en la
+   lista de "menos usadas": ajustarPestanas() abre el <details> solo si
+   hace falta, nunca esconde donde uno ya est\u00e1 parado.
+
+   El orden y el corte son un supuesto a ojo (qu\u00e9 se toca seguido en el
+   d\u00eda a d\u00eda de oficina), no un dato medido -- si Brayan o Abner ven que
+   alguna pesta\u00f1a "escondida" se usa m\u00e1s de lo que aqu\u00ed se pens\u00f3, este es
+   el \u00fanico lugar que hay que tocar. */
+const PESTANAS_PRIMARIAS = {
+  hoy: ["pedidos", "reparto", "existencias"],
+  clientes: ["clientes", "zonificar"],
+  catalogo: ["productos", "precios"],
+  equipo: ["usuarios", "metas"],
+  ajustes: ["ajustes", "ayuda"]
 };
 
 let grupoActual = null;
@@ -6815,33 +6877,76 @@ const TB_ICO_TAB = {tablero:"cal", vivo:"map", pedidos:"ped", reparto:"cam", exi
   sectores:"rut", repetidos:"rep", nuevos:"gen", productos:"pro", cargarCat:"sub", precios:"lis", portafolio:"por",
   usuarios:"cue", metas:"met", foco:"ojo", comisiones:"com", ficha:"fic", supervisores:"gen", ajustes:"aju", ayuda:"ayu", salud:"pul"};
 
-/* ---- el menu lateral: los mismos grupos y pestanas, en columna ---- */
+/* ===================== El riel de Administrar =====================
+   La navegacion esta SIEMPRE puesta: un riel de iconos pegado a la
+   izquierda en computadora, y una barra fija abajo en el telefono --el
+   mismo vestido que ya usa D'Eliza (instalacion hermana)-- pero pintado
+   con GRUPOS de Permed: mismos grupos, mismas pestanas, mismo filtro de
+   gruposVisibles() de siempre. No se toco cual pantalla hace que cosa,
+   solo COMO se llega.
+
+   Antes esto era una barra lateral de 226px con el nombre de cada
+   pestana por escrito (pintarLado, mas abajo esta comentada la version
+   vieja para quien la busque en el historial). El riel angosto pinta
+   solo el grupo -- entrar a una pestana que no es la primera del grupo
+   ahora pasa por la tira de #pestanas (ajustarPestanas), que ya existia
+   para el telefono y ahora se ve tambien en PC (ver el CSS, @media
+   min-width:900px). */
 let tbVersionTxt = "";
-/* La barra lateral sale de LADO (el orden en que se piensa el trabajo),
-   no de GRUPOS (el orden en que se fue construyendo). Sin iconos: el
-   nombre basta y once dibujitos eran once cosas más que ver. La que está
-   abierta lleva un hilo dorado, no un bloque dorado entero. Solo salen las
-   pestañas que este rol puede abrir. */
-function pintarLado(){
-  const l = $("#tb-lado");
-  if (!l) return;
-  const gs = gruposVisibles();
-  l.innerHTML =
-    '<div class="tb-logo"><img src="logo.png" alt="' + escapar(empApp()) + '"></div>' +
-    gs.map((g, gi) =>
-      '<div class="tb-sec">' + g.nombre + '</div><div class="tb-nav">' +
-      (gi === 0 ? '<button data-g="" aria-pressed="' + (!grupoActual) + '">' + tbIco("tab") + 'Tablero</button>' : '') +
-      g.tabs.map(t => '<button data-g="' + g.id + '" data-t="' + t[0] + '" aria-pressed="' +
-        (grupoActual === g.id && pestanaActual === t[0]) + '">' + tbIco(TB_ICO_TAB[t[0]] || "tab") + t[1] + '</button>').join("") +
-      '</div>').join("") +
-    '<div class="tb-pie"><b>' + escapar(empNombre()) + '</b>' + escapar(empLema()) +
-      '<div class="tb-version"><span id="tb-version">' + (tbVersionTxt || escapar(empApp())) + '</span>' +
-      (S.rol === "admin" ? '<button id="tb-cuenta">Mi cuenta ›</button>' : '<button id="tb-salir">Volver a la app ›</button>') + '</div></div>';
+/* Un icono por GRUPO, no por pestaña -- el riel no lista pestañas, eso
+   lo hace la tira de abajo del titulo. Se reusan los mismos dibujos de
+   TB_ICO que ya usaba la barra lateral (tab, cal, cli, pro, cue, aju),
+   para no duplicar trazos de SVG que ya estaban escritos.
+
+   🔴 No se llama ICONO_GRUPO: ese nombre ya existia (mas arriba, del
+   "menu de seis puertas" de antes de la barra lateral) con simbolos
+   unicode que hoy no pinta nadie -- queda ahi sin tocarse, por si algo
+   mas lo espera, pero un `const` no se puede declarar dos veces con el
+   mismo nombre sin tronar la pantalla entera. */
+const ICONO_RIEL = {hoy:"cal", clientes:"cli", catalogo:"pro", equipo:"cue", ajustes:"aju"};
+/* En el telefono caben tres destinos y el boton de "Todas". Cinco no
+   caben en 360-390px, y el que no cabe se va sin ninguna señal -- por
+   eso estos tres y no los cinco: los que un admin de oficina revisa mas
+   seguido desde el celular (pedidos/reparto del dia, altas de cliente,
+   precios), dejando Equipo y Ajustes detras de "Todas". Es un supuesto a
+   ojo, no medido; si en la calle otro orden pesa mas, se cambia aqui. */
+const DESTINOS_TELEFONO = ["hoy", "clientes", "catalogo"];
+
+function rielHTML(grupos, abierto){
+  const uno = g =>
+    '<button class="riel-b' + (DESTINOS_TELEFONO.indexOf(g.id) >= 0 ? ' riel-tel' : '') +
+    '" data-g="' + g.id + '"' + (g.id === abierto ? ' aria-current="page"' : '') +
+    ' style="--riel-color:' + (g.color || 'var(--tinta)') + ';">' +
+    '<i class="riel-ico" style="background:' + (g.color || 'var(--tinta)') + '">' + tbIco(ICONO_RIEL[g.id] || "tab") + '</i>' +
+    '<span>' + escapar(g.nombre) + '</span></button>';
+  return grupos.map(uno).join("") +
+    '<button class="riel-b riel-tel riel-todas" data-g="" id="adm-todas"' +
+    (abierto ? '' : ' aria-current="page"') + '>' +
+    '<i class="riel-ico" style="background:#64748B">' + tbIco("tab") + '</i><span>Tablero</span></button>';
+}
+
+/* Dibuja el riel y lo cablea. Cada grupo abre su primera pestaña
+   permitida (g.tabs[0]), no una fija: si no, a quien no puede ver la
+   primera se le abriria una pantalla en blanco -- mismo cuidado que ya
+   tenia irAPestana(). */
+function pintarRiel(){
+  const riel = $("#adm-riel");
+  if (!riel) return;
+  const grupos = gruposVisibles();
+  riel.innerHTML = rielHTML(grupos, grupoActual);
+  riel.querySelectorAll(".riel-b").forEach(b => b.onclick = () => {
+    const id = b.getAttribute("data-g");
+    if (!id){ grupoActual = null; return pintarAdmin(); }
+    const g = grupos.find(x => x.id === id);
+    if (!g || !g.tabs.length) return;
+    irAPestana(id, g.tabs[0][0]);
+  });
   if (!tbVersionTxt) tbVersion();
 }
-/* El nombre con que se ve una pestaña: el de la barra lateral. */
 /* El numero que de verdad distingue una version de otra es el CACHE del
-   service worker. Se lee de ahi mismo, para no tenerlo escrito dos veces. */
+   service worker. Se lee de ahi mismo, para no tenerlo escrito dos veces.
+   Ya no vive en el pie de una barra lateral (esa se fue con el riel):
+   ahora se muestra en Ajustes, ver adminAjustes(). */
 function tbVersion(){
   if (tbVersionTxt === "…") return;
   tbVersionTxt = "…";
@@ -6895,7 +7000,6 @@ function irAPestana(g, t){
      vuelve a decidir aqui, que es por donde pasan todas. */
   try { escucharClientes(); } catch(e){}
   try { escucharMovimientos(); } catch(e){}
-  $("#pant-admin").classList.remove("tb-abierto");
   cerrarHoja();
   pintarAdmin();
   try { window.scrollTo(0, 0); } catch(e){}
@@ -7023,17 +7127,13 @@ function tbElegir(b){
   }
 }
 function cablearTablero(){
-  const pa = $("#pant-admin");
-  $("#tb-ham").onclick = () => pa.classList.toggle("tb-abierto");
-  $("#tb-velo").onclick = () => pa.classList.remove("tb-abierto");
+  /* El riel (#adm-riel) se cablea solo, cada vez que pintarRiel() lo
+     vuelve a dibujar -- ya no hay cajon que abrir/cerrar (tb-ham/tb-velo
+     se fueron con la barra lateral) ni click delegado que leer aqui. La
+     cuenta y "Volver" siguen en el encabezado de siempre: tb-quien abre
+     la hoja de la cuenta y btn-volver sale de Administrar (mas abajo). */
   $("#tb-campana").onclick = tbAbrirAvisos;
   $("#tb-chat").onclick = () => abrirChat();
-  $("#tb-lado").onclick = e => {
-    if (e.target.closest("#tb-salir")) return salirDeAdmin();
-    if (e.target.closest("#tb-cuenta")){ pa.classList.remove("tb-abierto"); return $("#chip-usuario").onclick(); }
-    const b = e.target.closest("button[data-g]");
-    if (b) irAPestana(b.dataset.g, b.dataset.t);
-  };
   const inp = $("#tb-buscar");
   inp.oninput = tbBuscar;
   inp.onfocus = tbBuscar;
@@ -7712,8 +7812,20 @@ function ajustarPestanas(){
   const g = gruposVisibles().find(x => x.id === grupoActual);
   if (!g || g.tabs.length < 2){ tira.classList.add("oculto"); tira.innerHTML = ""; return; }
   tira.classList.remove("oculto");
-  tira.innerHTML = g.tabs.map(t => '<button class="pestana" data-t="' + t[0] + '" ' +
-    'aria-pressed="' + (pestanaActual === t[0]) + '">' + t[1] + '</button>').join("");
+  const boton = t => '<button class="pestana" data-t="' + t[0] + '" ' +
+    'aria-pressed="' + (pestanaActual === t[0]) + '">' + t[1] + '</button>';
+  /* Las que PESTANAS_PRIMARIAS no nombra para este grupo van bajo el
+     <details> "Más"; si el grupo no aparece ahi, o le quedan menos de
+     dos pestañas de sobra, no vale la pena plegar nada y se pintan
+     todas seguidas, como antes. */
+  const primarias = PESTANAS_PRIMARIAS[g.id];
+  const resto = primarias ? g.tabs.filter(t => primarias.indexOf(t[0]) < 0) : [];
+  const visibles = (primarias && resto.length >= 2) ? g.tabs.filter(t => primarias.indexOf(t[0]) >= 0) : g.tabs;
+  const plegadas = (primarias && resto.length >= 2) ? resto : [];
+  tira.innerHTML = visibles.map(boton).join("") +
+    (plegadas.length ? '<details class="pestanas-mas"' +
+      (plegadas.some(t => t[0] === pestanaActual) ? ' open' : '') + '>' +
+      '<summary>Más ▾</summary><div class="pestanas-mas-lista">' + plegadas.map(boton).join("") + '</div></details>' : '');
   $$("#pestanas .pestana").forEach(b => b.onclick = () => {
     pestanaActual = b.dataset.t;
     try { escucharMovimientos(); } catch(e){}   // Bodega y Productos ocupan el kardex
@@ -7758,7 +7870,7 @@ function pintarAdmin(){
       !grupoAbierto.tabs.some(t => t[0] === "usuarios")) cuentaReciencreada = null;
   const m = $("#admin-cuerpo");
   const cab = $("#pant-admin .marca b");
-  pintarLado(); pintarCabAdmin();
+  pintarRiel(); pintarCabAdmin();
   $("#pant-admin").classList.toggle("tb-portada", !grupoActual);
   if (!grupoActual){
     if (cab) cab.textContent = "Administrar";
@@ -9019,7 +9131,15 @@ function adminAjustes(m){
     '<summary>' + titulo + '<span class="marca-f">' + resumen + '</span></summary>' +
     '<div class="adentro">' + cuerpo + '</div></details>';
 
+  /* El numero de version vivia en el pie de la barra lateral vieja; se
+     fue con ella (19-09-2026, el riel de iconos no lleva pie). Ajustes
+     es "la configuracion de la empresa" y es donde alguien mira esto
+     cuando hace falta saber en que version anda el telefono -- el CACHE
+     de sw.js, no el rotulo 5.4.7 del index.html, que se quedo atras. */
+  if (!tbVersionTxt) tbVersion();
   m.innerHTML =
+    '<p class="conteo" style="margin:0 0 14px">Versión: <b id="tb-version">' +
+      escapar(tbVersionTxt || "…") + '</b></p>' +
     /* El aviso 'oficina ya manda datos' vive aqui y no en la portada: es una
        decision de una sola vez (apagar de este lado lo que ellos llevan),
        no trabajo del dia. */
