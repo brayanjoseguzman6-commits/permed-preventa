@@ -1,7 +1,7 @@
 /* ===================================================================
    LA EMPRESA — el único lugar donde va el nombre y los datos fiscales
 
-   Este archivo y `firebase-config.js` son los dos únicos que hay que
+   Este archivo y `supa-config.js` son los dos únicos que hay que
    tocar para que este paquete sirva a otra empresa. Nada más.
 
    Si algún día el nombre aparece escrito en una pantalla y NO sale de
@@ -35,6 +35,23 @@ window.EMPRESA = {
   /* Solo es un ejemplo gris dentro de la casilla del correo, cuando se
      crea una cuenta nueva. No es la cuenta de nadie. */
   correoEjemplo: "preventa1@ejemplo.com",
+
+  /* ===== Los dos servidores de la empresa =====
+     Cada empresa tiene los SUYOS: el chat y el espejo guardan conversaciones
+     y una copia de la base, y no se comparten con nadie.
+
+     `chatUrl`: el chat del equipo y las llamadas. Vacío = no sale el botón
+     del chat, y nada más cambia.
+     `espejoUrl`: la copia de la base que el servidor mantiene al día, para
+     que la app no gaste lecturas de Firestore al abrir. Vacío (o si no
+     contesta) = la app lee Firestore como siempre. */
+  chatUrl:   "https://permed-chat.155.138.201.236.sslip.io",
+  espejoUrl: "https://permed-espejo.155.138.201.236.sslip.io",
+
+  /* El paquete de la app de Android de ESTA empresa (la que suena como
+     llamada con la pantalla apagada). Vacío = el chat avisa por el
+     navegador, sin la app. */
+  androidPaquete: "sv.permed.preventa",
 
   /* ===== Lo que va arriba del ticket =====
      Estos cinco salieron de la ficha del emisor que ya está registrada

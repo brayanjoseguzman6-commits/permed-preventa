@@ -83,8 +83,10 @@ prueba("el motorista no puede cerrar ninguna entrega sin haber anotado el kilome
 
 prueba("una entrega fallida no llega a facturación", () => {
   // `ninguno` es «no recibió nada». Sin esta guarda se emitiría una
-  // factura por una venta que no ocurrió.
-  contiene(CERRAR, "if (!ninguno && total > 0)",
+  // factura por una venta que no ocurrió. Desde el 06-09-2026 además
+  // excluye los cambios (`ped.tipo !== "cambio"`): un cambio de producto
+  // tampoco es una venta y no debe facturarse.
+  contiene(CERRAR, 'if (!ninguno && total > 0 && ped.tipo !== "cambio")',
            "se perdió la guarda que impide facturar lo que no se entregó");
 });
 
@@ -124,7 +126,7 @@ prueba("todo va en un solo lote: o entra completo, o no entra nada", () => {
 grupo("El puente: el kardex de bodega");
 
 const DEPS_KARDEX = ["correlativo", "unidadDe", "nombreProd", "docMovimiento",
-  "dosDec", "EQUIVALENCIAS", "equivalencias", "movimientosDeEntrega"];
+  "dosDec", "EQUIVALENCIAS", "equivalencias", "movimientosDeEntrega", "aLaBase"];
 
 prueba("la tabla de equivalencias de fábrica viene vacía, sin datos de otra empresa", () => {
   // Se llenó una vez por error con 38 códigos de otro cliente. Hasta que
@@ -209,7 +211,8 @@ prueba("el correlativo va con ceros adelante, por tipo y con corrimiento", () =>
 });
 
 prueba("el crédito fiscal se reconoce por el tipo exacto", () => {
-  const { esContribuyente } = cargar(["esContribuyente"]);
+  const { esContribuyente } = cargar(["esContribuyente", "fiscalDe", "fiscalDeOficina"],
+    { S: {} });
   cierto(esContribuyente({ fiscal: { tipo: "credito" } }));
   falso(esContribuyente({ fiscal: { tipo: "consumidor" } }));
   falso(esContribuyente({ fiscal: {} }));

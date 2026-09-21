@@ -112,10 +112,15 @@ prueba("antes de abrir está cerrado, y después de cerrar también", () => {
   cierto(horario("preventa", 20 * 60, aj).estaCerrado(), "a las 8 de la noche");
 });
 
-prueba("oficina y el supervisor no tienen horario", () => {
+prueba("admin no tiene horario; el supervisor sí, porque también vende", () => {
+  // El supervisor vende como cualquier preventista (aplicarPuesto), así que
+  // le aplica el mismo corte de hora: antes quedaba exento junto con admin,
+  // y sus pedidos después de hora nunca salían marcados ADICIONAL. Admin
+  // sigue exento porque no vende, solo monitorea/levanta pedidos de oficina.
   const aj = { horaInicio: "05:00", horaCierre: "17:30" };
   falso(horario("admin", 23 * 60, aj).estaCerrado());
-  falso(horario("supervisor", 3 * 60, aj).estaCerrado());
+  cierto(horario("supervisor", 23 * 60, aj).estaCerrado());
+  falso(horario("supervisor", 10 * 60, aj).estaCerrado());
 });
 
 prueba("sin hora de cierre puesta, no se cierra", () => {
