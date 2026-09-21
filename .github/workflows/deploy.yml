@@ -1,0 +1,34 @@
+name: Publicar a Firebase Hosting
+
+# Se dispara solo cuando algo entra a main — en este repo,
+# fusionar a main YA ES publicar (ver CLAUDE.md, sección Deploy).
+# No fusionar en horario de ruta (5:30 a.m. a 6:30 p.m.), salvo excepción de Brayan.
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  pruebas:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v4
+
+      - name: Correr las pruebas
+        run: node pruebas/correr.js
+
+  publicar:
+    needs: pruebas
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v4
+
+      - name: Publicar en Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_PREVENTA_PERMED }}'
+          channelId: live
+          projectId: preventa-permed
